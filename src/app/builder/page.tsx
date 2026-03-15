@@ -115,7 +115,7 @@ export default function BuilderPage() {
 
   const handleGenerateResume = () => {
     localStorage.setItem("resumeFormData", JSON.stringify(formData));
-    router.push("/preview");
+    router.push("/analyze");
   };
 
   return (

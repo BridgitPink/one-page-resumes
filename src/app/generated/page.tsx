@@ -3,20 +3,25 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type {
-  GenerateResumeResponse,
+  AnalyzeResumeResponse,
   GeneratedResume,
+  KeywordAnalysis,
 } from "@/types/resume";
 import {
   generatedResumeToStorage,
   parseResumeFormDataFromStorage,
 } from "@/lib/resume/normalizeGeneratedResume";
 import { toDisplayResume } from "@/lib/resume/toDisplayResume";
+import { renderHighlightedText } from "@/lib/resume/highlightKeywords";
 
 const RESUME_FORM_STORAGE_KEY = "resumeFormData";
 const GENERATED_RESUME_STORAGE_KEY = "generatedResume";
+const RESUME_ANALYSIS_STORAGE_KEY = "resumeAnalysis";
 
 export default function GeneratedPage() {
   const [generated, setGenerated] = useState<GeneratedResume | null>(null);
+  const [keywordAnalysis, setKeywordAnalysis] =
+    useState<KeywordAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +46,7 @@ export default function GeneratedPage() {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch("/api/generate-resume", {
+        const response = await fetch("/api/analyze-resume", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -53,13 +58,16 @@ export default function GeneratedPage() {
           throw new Error("Failed to generate resume.");
         }
 
-        const result: GenerateResumeResponse = await response.json();
+        const result: AnalyzeResumeResponse = await response.json();
 
         setGenerated(result.generated);
+        setKeywordAnalysis(result.keywordAnalysis);
+
         localStorage.setItem(
           GENERATED_RESUME_STORAGE_KEY,
           generatedResumeToStorage(result.generated)
         );
+        localStorage.setItem(RESUME_ANALYSIS_STORAGE_KEY, JSON.stringify(result));
       } catch (err) {
         console.error(err);
         setError("Could not generate the resume.");
@@ -77,14 +85,14 @@ export default function GeneratedPage() {
         <div className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8">
           <h1 className="text-3xl font-bold">Generating resume...</h1>
           <p className="mt-4 text-slate-300">
-            Building your structured resume output now.
+            Building your resume and matching it against the job description.
           </p>
         </div>
       </main>
     );
   }
 
-  if (error || !generated) {
+  if (error || !generated || !keywordAnalysis) {
     return (
       <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
         <div className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8">
@@ -99,12 +107,13 @@ export default function GeneratedPage() {
             >
               Back to Builder
             </Link>
-            <Link
-              href="/preview"
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
               className="inline-flex rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5"
             >
-              Go to Preview
-            </Link>
+              Try Again
+            </button>
           </div>
         </div>
       </main>
@@ -112,6 +121,7 @@ export default function GeneratedPage() {
   }
 
   const displayResume = toDisplayResume(generated);
+  const matchedKeywords = keywordAnalysis.matchedKeywords;
 
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-16 text-white">
@@ -119,12 +129,12 @@ export default function GeneratedPage() {
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
             <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-slate-300">
-              Generation Endpoint Test
+              Generated Resume
             </span>
-            <h1 className="mt-4 text-4xl font-bold">Generated Resume Output</h1>
+            <h1 className="mt-4 text-4xl font-bold">Your Resume Draft</h1>
             <p className="mt-3 max-w-2xl text-slate-300">
-              This page tests the dedicated generation route separately from
-              analysis.
+              Review the generated resume first. Matched job-description terms are
+              highlighted below.
             </p>
           </div>
 
@@ -136,10 +146,10 @@ export default function GeneratedPage() {
               Back to Builder
             </Link>
             <Link
-              href="/preview"
+              href="/analyze"
               className="inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950"
             >
-              Continue to Preview
+              Continue to Analyze
             </Link>
           </div>
         </div>
@@ -164,7 +174,7 @@ export default function GeneratedPage() {
 
           <ResumeSection title="Professional Summary">
             <p className="text-sm leading-6 text-slate-700">
-              {displayResume.summary}
+              {renderHighlightedText(displayResume.summary, matchedKeywords)}
             </p>
           </ResumeSection>
 
@@ -199,7 +209,9 @@ export default function GeneratedPage() {
                     </div>
                     <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
                       {experience.bullets.map((bullet, bulletIndex) => (
-                        <li key={`${experience.role}-${bulletIndex}`}>{bullet}</li>
+                        <li key={`${experience.role}-${bulletIndex}`}>
+                          {renderHighlightedText(bullet, matchedKeywords)}
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -218,7 +230,9 @@ export default function GeneratedPage() {
                     <h3 className="font-semibold">{project.name}</h3>
                     <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
                       {project.bullets.map((bullet, bulletIndex) => (
-                        <li key={`${project.name}-${bulletIndex}`}>{bullet}</li>
+                        <li key={`${project.name}-${bulletIndex}`}>
+                          {renderHighlightedText(bullet, matchedKeywords)}
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -232,14 +246,24 @@ export default function GeneratedPage() {
           <ResumeSection title="Skills">
             {displayResume.skills.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {displayResume.skills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700"
-                  >
-                    {skill}
-                  </span>
-                ))}
+                {displayResume.skills.map((skill) => {
+                  const matched = matchedKeywords.some(
+                    (keyword) => keyword.toLowerCase() === skill.toLowerCase()
+                  );
+
+                  return (
+                    <span
+                      key={skill}
+                      className={`rounded-full px-3 py-1 text-sm ${
+                        matched
+                          ? "bg-emerald-100 font-semibold text-emerald-800"
+                          : "bg-slate-100 text-slate-700"
+                      }`}
+                    >
+                      {skill}
+                    </span>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-slate-600">No skills added yet.</p>
@@ -250,7 +274,9 @@ export default function GeneratedPage() {
             {displayResume.extras.length > 0 ? (
               <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
                 {displayResume.extras.map((item, index) => (
-                  <li key={`${item}-${index}`}>{item}</li>
+                  <li key={`${item}-${index}`}>
+                    {renderHighlightedText(item, matchedKeywords)}
+                  </li>
                 ))}
               </ul>
             ) : (

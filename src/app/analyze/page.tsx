@@ -6,18 +6,14 @@ import type {
   AnalyzeResumeResponse,
   GeneratedResume,
   KeywordAnalysis,
-  ResumeFormData,
   ResumeRecommendations,
   ResumeScore,
 } from "@/types/resume";
-import {
-  generatedResumeToStorage,
-  parseGeneratedResumeFromStorage,
-  parseResumeFormDataFromStorage,
-} from "@/lib/resume/normalizeGeneratedResume";
+import { parseGeneratedResumeFromStorage } from "@/lib/resume/normalizeGeneratedResume";
 import { toDisplayResume } from "@/lib/resume/toDisplayResume";
+import { renderHighlightedText } from "@/lib/resume/highlightKeywords";
 
-const RESUME_FORM_STORAGE_KEY = "resumeFormData";
+const RESUME_ANALYSIS_STORAGE_KEY = "resumeAnalysis";
 const GENERATED_RESUME_STORAGE_KEY = "generatedResume";
 
 function bulletMatchesKeywords(
@@ -32,8 +28,18 @@ function bulletMatchesKeywords(
   );
 }
 
-export default function PreviewPage() {
-  const [data, setData] = useState<ResumeFormData | null>(null);
+function safeParseAnalysis(raw: string | null): AnalyzeResumeResponse | null {
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as AnalyzeResumeResponse;
+  } catch (error) {
+    console.error("Failed to parse stored analysis:", error);
+    return null;
+  }
+}
+
+export default function AnalyzePage() {
   const [generated, setGenerated] = useState<GeneratedResume | null>(null);
   const [keywordAnalysis, setKeywordAnalysis] =
     useState<KeywordAnalysis | null>(null);
@@ -41,114 +47,52 @@ export default function PreviewPage() {
   const [recommendations, setRecommendations] =
     useState<ResumeRecommendations | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const parsedFormData = parseResumeFormDataFromStorage(
-      localStorage.getItem(RESUME_FORM_STORAGE_KEY)
+    const storedAnalysis = safeParseAnalysis(
+      localStorage.getItem(RESUME_ANALYSIS_STORAGE_KEY)
     );
 
-    if (!parsedFormData) {
+    if (storedAnalysis) {
+      setGenerated(storedAnalysis.generated);
+      setKeywordAnalysis(storedAnalysis.keywordAnalysis);
+      setResumeScore(storedAnalysis.resumeScore);
+      setRecommendations(storedAnalysis.recommendations);
       setIsLoading(false);
       return;
     }
 
-    setData(parsedFormData);
-
-    const cachedGenerated = parseGeneratedResumeFromStorage(
+    const storedGenerated = parseGeneratedResumeFromStorage(
       localStorage.getItem(GENERATED_RESUME_STORAGE_KEY)
     );
 
-    if (cachedGenerated) {
-      setGenerated(cachedGenerated);
+    if (storedGenerated) {
+      setGenerated(storedGenerated);
     }
 
-    const analyzeResume = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const response = await fetch("/api/analyze-resume", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(parsedFormData),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to analyze resume.");
-        }
-
-        const result: AnalyzeResumeResponse = await response.json();
-
-        setGenerated(result.generated);
-        setKeywordAnalysis(result.keywordAnalysis);
-        setResumeScore(result.resumeScore);
-        setRecommendations(result.recommendations);
-
-        localStorage.setItem(
-          GENERATED_RESUME_STORAGE_KEY,
-          generatedResumeToStorage(result.generated)
-        );
-      } catch (err) {
-        console.error(err);
-        setError("Something went wrong while generating the resume preview.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void analyzeResume();
+    setIsLoading(false);
   }, []);
 
   if (isLoading) {
     return (
       <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
         <div className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8">
-          <h1 className="text-3xl font-bold">Generating preview...</h1>
+          <h1 className="text-3xl font-bold">Loading analysis...</h1>
           <p className="mt-4 text-slate-300">
-            We are analyzing your input, matching keywords, scoring the resume,
-            and generating recommendations.
+            Preparing your resume score, keyword analysis, and recommendations.
           </p>
         </div>
       </main>
     );
   }
 
-  if (!data) {
+  if (!generated || !keywordAnalysis || !resumeScore || !recommendations) {
     return (
       <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
         <div className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8">
-          <h1 className="text-3xl font-bold">No resume data found</h1>
+          <h1 className="text-3xl font-bold">Analysis unavailable</h1>
           <p className="mt-4 text-slate-300">
-            Fill out the builder form first so we can preview your generated
-            resume.
-          </p>
-          <Link
-            href="/builder"
-            className="mt-6 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950"
-          >
-            Go to Builder
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  if (
-    error ||
-    !generated ||
-    !keywordAnalysis ||
-    !resumeScore ||
-    !recommendations
-  ) {
-    return (
-      <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8">
-          <h1 className="text-3xl font-bold">Preview unavailable</h1>
-          <p className="mt-4 text-slate-300">
-            {error || "We could not generate the preview right now."}
+            Generate a resume first so the analysis page has data to display.
           </p>
           <div className="mt-6 flex gap-3">
             <Link
@@ -157,13 +101,12 @@ export default function PreviewPage() {
             >
               Back to Builder
             </Link>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
+            <Link
+              href="/generated"
               className="inline-flex rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5"
             >
-              Try Again
-            </button>
+              Go to Generated Resume
+            </Link>
           </div>
         </div>
       </main>
@@ -184,26 +127,26 @@ export default function PreviewPage() {
               Resume Analysis
             </span>
             <h1 className="mt-4 text-4xl font-bold tracking-tight">
-              Structured resume preview
+              ATS Match and Improvement Plan
             </h1>
             <p className="mt-3 max-w-2xl text-slate-300">
-              Review your generated resume, keyword alignment, score, and
-              tailored recommendations.
+              Review what matched, what is missing, and what projects or
+              certifications would strengthen the resume.
             </p>
           </div>
 
           <div className="flex gap-3">
             <Link
-              href="/builder"
-              className="inline-flex rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5"
-            >
-              Back to Builder
-            </Link>
-            <Link
               href="/generated"
               className="inline-flex rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5"
             >
-              View Generated
+              Back to Resume
+            </Link>
+            <Link
+              href="/builder"
+              className="inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950"
+            >
+              Edit Inputs
             </Link>
           </div>
         </div>
@@ -434,7 +377,10 @@ export default function PreviewPage() {
 
             <ResumeSection title="Professional Summary">
               <p className="text-sm leading-6 text-slate-700">
-                {displayResume.summary}
+                {renderHighlightedText(
+                  displayResume.summary,
+                  keywordAnalysis.matchedKeywords
+                )}
               </p>
             </ResumeSection>
 
@@ -479,10 +425,13 @@ export default function PreviewPage() {
                             <li
                               key={`${experience.role}-${bulletIndex}`}
                               className={
-                                isMatched ? "font-medium text-slate-900" : ""
+                                isMatched ? "text-slate-900" : ""
                               }
                             >
-                              {bullet}
+                              {renderHighlightedText(
+                                bullet,
+                                keywordAnalysis.matchedKeywords
+                              )}
                             </li>
                           );
                         })}
@@ -514,10 +463,13 @@ export default function PreviewPage() {
                             <li
                               key={`${project.name}-${bulletIndex}`}
                               className={
-                                isMatched ? "font-medium text-slate-900" : ""
+                                isMatched ? "text-slate-900" : ""
                               }
                             >
-                              {bullet}
+                              {renderHighlightedText(
+                                bullet,
+                                keywordAnalysis.matchedKeywords
+                              )}
                             </li>
                           );
                         })}
@@ -543,7 +495,7 @@ export default function PreviewPage() {
                         key={skill}
                         className={`rounded-full px-3 py-1 text-sm ${
                           matched
-                            ? "bg-emerald-100 text-emerald-800"
+                            ? "bg-emerald-100 font-semibold text-emerald-800"
                             : "bg-slate-100 text-slate-700"
                         }`}
                       >
@@ -561,7 +513,12 @@ export default function PreviewPage() {
               {displayResume.extras.length > 0 ? (
                 <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
                   {displayResume.extras.map((item, index) => (
-                    <li key={`${item}-${index}`}>{item}</li>
+                    <li key={`${item}-${index}`}>
+                      {renderHighlightedText(
+                        item,
+                        keywordAnalysis.matchedKeywords
+                      )}
+                    </li>
                   ))}
                 </ul>
               ) : (
