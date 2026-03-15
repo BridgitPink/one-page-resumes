@@ -3,40 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-type ExperienceEntry = {
-  role: string;
-  organization: string;
-  details: string;
-};
-
-type ProjectEntry = {
-  name: string;
-  details: string;
-};
-
-type ResumeFormData = {
-  basics: {
-    fullName: string;
-    email: string;
-    phone: string;
-    location: string;
-    linkedin: string;
-    github: string;
-    school: string;
-    degree: string;
-    graduationDate: string;
-    gpa: string;
-  };
-  target: {
-    role: string;
-    industry: string;
-    jobDescription: string;
-  };
-  experiences: ExperienceEntry[];
-  projects: ProjectEntry[];
-  skills: string;
-  extras: string;
-};
+import type {
+  ExperienceEntry,
+  ProjectEntry,
+  ResumeFormData,
+} from "@/types/resume";
 
 const emptyExperience = (): ExperienceEntry => ({
   role: "",
