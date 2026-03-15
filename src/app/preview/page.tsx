@@ -3,19 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type {
+  AnalyzeResumeResponse,
   GeneratedResume,
   KeywordAnalysis,
   ResumeFormData,
   ResumeRecommendations,
   ResumeScore,
 } from "@/types/resume";
-
-type AnalyzeResumeResponse = {
-  generated: GeneratedResume;
-  keywordAnalysis: KeywordAnalysis;
-  resumeScore: ResumeScore;
-  recommendations: ResumeRecommendations;
-};
 
 export default function PreviewPage() {
   const [data, setData] = useState<ResumeFormData | null>(null);

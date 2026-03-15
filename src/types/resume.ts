@@ -73,3 +73,14 @@ export type ResumeRecommendations = {
   recommendedCourseworkFraming: string[];
   recommendedSectionAdditions: string[];
 };
+
+export type GenerateResumeResponse = {
+  generated: GeneratedResume;
+};
+
+export type AnalyzeResumeResponse = {
+  generated: GeneratedResume;
+  keywordAnalysis: KeywordAnalysis;
+  resumeScore: ResumeScore;
+  recommendations: ResumeRecommendations;
+};
