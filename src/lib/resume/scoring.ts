@@ -1,6 +1,7 @@
 import type {
   GeneratedResume,
   KeywordAnalysis,
+  ResumeBullet,
   ResumeScore,
 } from "@/types/resume";
 
@@ -12,14 +13,27 @@ function hasNumbers(text: string): boolean {
   return /\d/.test(text);
 }
 
-function countStrongBullets(resume: GeneratedResume): number {
-  const bullets = [
-    ...resume.experience.flatMap((item) => item.bullets),
-    ...resume.projects.flatMap((item) => item.bullets),
+function getBulletText(bullet: string | ResumeBullet): string {
+  if (typeof bullet === "string") return bullet;
+
+  return [bullet.polished, bullet.expanded, ...(bullet.impactTags ?? [])]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function getAllBulletText(resume: GeneratedResume): string[] {
+  return [
+    ...resume.experience.flatMap((item) => item.bullets.map(getBulletText)),
+    ...resume.projects.flatMap((item) => item.bullets.map(getBulletText)),
   ];
+}
+
+function countStrongBullets(resume: GeneratedResume): number {
+  const bullets = getAllBulletText(resume);
 
   return bullets.filter((bullet) => {
     const lower = bullet.toLowerCase();
+
     return (
       lower.includes("built") ||
       lower.includes("developed") ||
@@ -41,6 +55,8 @@ export function scoreResume(
 ): ResumeScore {
   const strengths: string[] = [];
   const improvementSuggestions: string[] = [];
+
+  const allBulletText = getAllBulletText(resume);
 
   const hasSummary = Boolean(resume.summary.trim());
   const hasEducation =
@@ -65,10 +81,9 @@ export function scoreResume(
   completenessScore = clamp(completenessScore, 0, 100);
 
   const strongBulletCount = countStrongBullets(resume);
-  const quantifiedBulletCount = [
-    ...resume.experience.flatMap((item) => item.bullets),
-    ...resume.projects.flatMap((item) => item.bullets),
-  ].filter((bullet) => hasNumbers(bullet)).length;
+  const quantifiedBulletCount = allBulletText.filter((bullet) =>
+    hasNumbers(bullet)
+  ).length;
 
   let contentStrengthScore = 0;
   contentStrengthScore += Math.min(strongBulletCount * 12, 48);
@@ -89,14 +104,13 @@ export function scoreResume(
 
   const keywordAlignmentScore = keywordAnalysis.matchScore;
 
-  let weightedScore =
+  const weightedScore =
     keywordAlignmentScore * 0.35 +
     contentStrengthScore * 0.30 +
     completenessScore * 0.20 +
     formattingReadinessScore * 0.15;
 
   let overallScore = Math.round(weightedScore);
-
   overallScore = Math.min(overallScore, 89);
 
   if (keywordAnalysis.matchScore >= 65) {
@@ -170,6 +184,9 @@ export function scoreResume(
     completenessScore,
     formattingReadinessScore,
     strengths: Array.from(new Set(strengths)).slice(0, 5),
-    improvementSuggestions: Array.from(new Set(improvementSuggestions)).slice(0, 6),
+    improvementSuggestions: Array.from(new Set(improvementSuggestions)).slice(
+      0,
+      6
+    ),
   };
 }

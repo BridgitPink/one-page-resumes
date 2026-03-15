@@ -1,4 +1,8 @@
-import type { GeneratedResume, KeywordAnalysis } from "@/types/resume";
+import type {
+  GeneratedResume,
+  KeywordAnalysis,
+  ResumeBullet,
+} from "@/types/resume";
 
 const STOP_WORDS = new Set([
   "the",
@@ -93,12 +97,49 @@ function normalizeText(text: string): string {
 }
 
 function uniqueSorted(items: string[]): string[] {
-  return Array.from(new Set(items.map((item) => item.trim()).filter(Boolean))).sort(
-    (a, b) => a.localeCompare(b)
+  return Array.from(
+    new Set(items.map((item) => item.trim()).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+}
+
+function getBulletText(bullet: string | ResumeBullet): string {
+  if (typeof bullet === "string") return bullet;
+
+  return [bullet.polished, bullet.expanded, ...(bullet.matchedKeywords ?? [])]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function buildResumeCorpus(resume: GeneratedResume): string {
+  const experienceText = resume.experience.flatMap((item) => [
+    item.role,
+    item.organization,
+    ...item.bullets.map(getBulletText),
+  ]);
+
+  const projectText = resume.projects.flatMap((item) => [
+    item.name,
+    ...item.bullets.map(getBulletText),
+  ]);
+
+  return normalizeText(
+    [
+      resume.summary,
+      ...experienceText,
+      ...projectText,
+      ...resume.skills,
+      ...resume.extras,
+      resume.target.role,
+      resume.target.industry,
+    ]
+      .filter(Boolean)
+      .join(" ")
   );
 }
 
-export function extractKeywordsFromJobDescription(jobDescription: string): string[] {
+export function extractKeywordsFromJobDescription(
+  jobDescription: string
+): string[] {
   const normalized = normalizeText(jobDescription);
 
   const foundMultiword = IMPORTANT_MULTIWORD_KEYWORDS.filter((phrase) =>
@@ -172,10 +213,11 @@ export function extractKeywordsFromJobDescription(jobDescription: string): strin
     ].includes(word);
   });
 
-  return uniqueSorted([...foundMultiword, ...technicalTerms, ...actionOrDomainTerms]).slice(
-    0,
-    25
-  );
+  return uniqueSorted([
+    ...foundMultiword,
+    ...technicalTerms,
+    ...actionOrDomainTerms,
+  ]).slice(0, 25);
 }
 
 export function analyzeKeywordMatch(
@@ -183,22 +225,7 @@ export function analyzeKeywordMatch(
   resume: GeneratedResume
 ): KeywordAnalysis {
   const extractedKeywords = extractKeywordsFromJobDescription(jobDescription);
-
-  const resumeCorpus = normalizeText(
-    [
-      resume.summary,
-      ...resume.experience.flatMap((item) => [
-        item.role,
-        item.organization,
-        ...item.bullets,
-      ]),
-      ...resume.projects.flatMap((item) => [item.name, ...item.bullets]),
-      ...resume.skills,
-      ...resume.extras,
-      resume.target.role,
-      resume.target.industry,
-    ].join(" ")
-  );
+  const resumeCorpus = buildResumeCorpus(resume);
 
   const matchedKeywords = extractedKeywords.filter((keyword) =>
     resumeCorpus.includes(keyword.toLowerCase())

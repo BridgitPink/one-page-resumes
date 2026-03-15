@@ -5,8 +5,15 @@ import { useEffect, useState } from "react";
 import type {
   GenerateResumeResponse,
   GeneratedResume,
-  ResumeFormData,
 } from "@/types/resume";
+import {
+  generatedResumeToStorage,
+  parseResumeFormDataFromStorage,
+} from "@/lib/resume/normalizeGeneratedResume";
+import { toDisplayResume } from "@/lib/resume/toDisplayResume";
+
+const RESUME_FORM_STORAGE_KEY = "resumeFormData";
+const GENERATED_RESUME_STORAGE_KEY = "generatedResume";
 
 export default function GeneratedPage() {
   const [generated, setGenerated] = useState<GeneratedResume | null>(null);
@@ -14,13 +21,20 @@ export default function GeneratedPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const raw = localStorage.getItem("resumeFormData");
+    const raw = localStorage.getItem(RESUME_FORM_STORAGE_KEY);
+
     if (!raw) {
       setIsLoading(false);
       return;
     }
 
-    const parsed: ResumeFormData = JSON.parse(raw);
+    const parsed = parseResumeFormDataFromStorage(raw);
+
+    if (!parsed) {
+      setError("Stored resume form data is invalid.");
+      setIsLoading(false);
+      return;
+    }
 
     const run = async () => {
       try {
@@ -40,7 +54,12 @@ export default function GeneratedPage() {
         }
 
         const result: GenerateResumeResponse = await response.json();
+
         setGenerated(result.generated);
+        localStorage.setItem(
+          GENERATED_RESUME_STORAGE_KEY,
+          generatedResumeToStorage(result.generated)
+        );
       } catch (err) {
         console.error(err);
         setError("Could not generate the resume.");
@@ -92,6 +111,8 @@ export default function GeneratedPage() {
     );
   }
 
+  const displayResume = toDisplayResume(generated);
+
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-16 text-white">
       <div className="mx-auto max-w-5xl">
@@ -102,30 +123,39 @@ export default function GeneratedPage() {
             </span>
             <h1 className="mt-4 text-4xl font-bold">Generated Resume Output</h1>
             <p className="mt-3 max-w-2xl text-slate-300">
-              This page tests the dedicated generation route separately from analysis.
+              This page tests the dedicated generation route separately from
+              analysis.
             </p>
           </div>
 
-          <Link
-            href="/builder"
-            className="inline-flex rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5"
-          >
-            Back to Builder
-          </Link>
+          <div className="flex gap-3">
+            <Link
+              href="/builder"
+              className="inline-flex rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5"
+            >
+              Back to Builder
+            </Link>
+            <Link
+              href="/preview"
+              className="inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950"
+            >
+              Continue to Preview
+            </Link>
+          </div>
         </div>
 
         <section className="rounded-3xl border border-white/10 bg-white p-10 text-slate-900 shadow-2xl shadow-black/30">
           <header className="border-b border-slate-200 pb-6">
             <h1 className="text-3xl font-bold">
-              {generated.basics.fullName || "Your Name"}
+              {displayResume.basics.fullName || "Your Name"}
             </h1>
             <p className="mt-2 text-sm text-slate-600">
               {[
-                generated.basics.email,
-                generated.basics.phone,
-                generated.basics.location,
-                generated.basics.linkedin,
-                generated.basics.github,
+                displayResume.basics.email,
+                displayResume.basics.phone,
+                displayResume.basics.location,
+                displayResume.basics.linkedin,
+                displayResume.basics.github,
               ]
                 .filter(Boolean)
                 .join(" • ")}
@@ -133,19 +163,23 @@ export default function GeneratedPage() {
           </header>
 
           <ResumeSection title="Professional Summary">
-            <p className="text-sm leading-6 text-slate-700">{generated.summary}</p>
+            <p className="text-sm leading-6 text-slate-700">
+              {displayResume.summary}
+            </p>
           </ResumeSection>
 
           <ResumeSection title="Education">
             <p className="font-semibold">
-              {generated.basics.school || "School Name"}
+              {displayResume.basics.school || "School Name"}
             </p>
-            <p className="mt-1">{generated.basics.degree || "Degree / Major"}</p>
+            <p className="mt-1">
+              {displayResume.basics.degree || "Degree / Major"}
+            </p>
             <p className="mt-1 text-sm text-slate-600">
               {[
-                generated.basics.graduationDate &&
-                  `Graduation: ${generated.basics.graduationDate}`,
-                generated.basics.gpa && `GPA: ${generated.basics.gpa}`,
+                displayResume.basics.graduationDate &&
+                  `Graduation: ${displayResume.basics.graduationDate}`,
+                displayResume.basics.gpa && `GPA: ${displayResume.basics.gpa}`,
               ]
                 .filter(Boolean)
                 .join(" • ")}
@@ -153,9 +187,9 @@ export default function GeneratedPage() {
           </ResumeSection>
 
           <ResumeSection title="Experience">
-            {generated.experience.length > 0 ? (
+            {displayResume.experience.length > 0 ? (
               <div className="space-y-5">
-                {generated.experience.map((experience, index) => (
+                {displayResume.experience.map((experience, index) => (
                   <div key={`${experience.role}-${index}`}>
                     <div className="flex flex-col justify-between gap-1 sm:flex-row">
                       <h3 className="font-semibold">{experience.role}</h3>
@@ -177,9 +211,9 @@ export default function GeneratedPage() {
           </ResumeSection>
 
           <ResumeSection title="Projects">
-            {generated.projects.length > 0 ? (
+            {displayResume.projects.length > 0 ? (
               <div className="space-y-5">
-                {generated.projects.map((project, index) => (
+                {displayResume.projects.map((project, index) => (
                   <div key={`${project.name}-${index}`}>
                     <h3 className="font-semibold">{project.name}</h3>
                     <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
@@ -196,9 +230,9 @@ export default function GeneratedPage() {
           </ResumeSection>
 
           <ResumeSection title="Skills">
-            {generated.skills.length > 0 ? (
+            {displayResume.skills.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {generated.skills.map((skill) => (
+                {displayResume.skills.map((skill) => (
                   <span
                     key={skill}
                     className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700"
@@ -213,9 +247,9 @@ export default function GeneratedPage() {
           </ResumeSection>
 
           <ResumeSection title="Additional Information">
-            {generated.extras.length > 0 ? (
+            {displayResume.extras.length > 0 ? (
               <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
-                {generated.extras.map((item, index) => (
+                {displayResume.extras.map((item, index) => (
                   <li key={`${item}-${index}`}>{item}</li>
                 ))}
               </ul>

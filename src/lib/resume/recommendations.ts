@@ -1,13 +1,60 @@
 import type {
   GeneratedResume,
   KeywordAnalysis,
+  ResumeBullet,
   ResumeRecommendations,
   ResumeScore,
 } from "@/types/resume";
 
 function includesAny(text: string, terms: string[]): boolean {
   const lower = text.toLowerCase();
-  return terms.some((term) => lower.includes(term));
+  return terms.some((term) => lower.includes(term.toLowerCase()));
+}
+
+function getBulletText(bullet: string | ResumeBullet): string {
+  if (typeof bullet === "string") return bullet;
+
+  return [
+    bullet.polished,
+    bullet.expanded,
+    ...(bullet.impactTags ?? []),
+    ...(bullet.matchedKeywords ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function buildRecommendationCorpus(
+  resume: GeneratedResume,
+  keywordAnalysis: KeywordAnalysis
+): string {
+  const experienceText = resume.experience.flatMap((item) => [
+    item.role,
+    item.organization,
+    ...item.bullets.map(getBulletText),
+  ]);
+
+  const projectText = resume.projects.flatMap((item) => [
+    item.name,
+    ...item.bullets.map(getBulletText),
+  ]);
+
+  return [
+    resume.target.role,
+    resume.target.industry,
+    resume.target.jobDescription,
+    resume.summary,
+    ...experienceText,
+    ...projectText,
+    ...resume.skills,
+    ...resume.extras,
+    ...keywordAnalysis.extractedKeywords,
+    ...keywordAnalysis.matchedKeywords,
+    ...keywordAnalysis.missingKeywords,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 }
 
 export function generateRecommendations(
@@ -15,9 +62,7 @@ export function generateRecommendations(
   keywordAnalysis: KeywordAnalysis,
   score: ResumeScore
 ): ResumeRecommendations {
-  const roleText = `${resume.target.role} ${resume.target.industry}`.toLowerCase();
-  const keywordsText = keywordAnalysis.extractedKeywords.join(" ").toLowerCase();
-  const combinedText = `${roleText} ${keywordsText} ${resume.skills.join(" ").toLowerCase()}`;
+  const combinedText = buildRecommendationCorpus(resume, keywordAnalysis);
 
   const recommendedProjects: string[] = [];
   const recommendedCertifications: string[] = [];
@@ -40,6 +85,8 @@ export function generateRecommendations(
       "javascript",
       "typescript",
       "api",
+      "next.js",
+      "node",
     ])
   ) {
     recommendedProjects.push(
@@ -61,11 +108,14 @@ export function generateRecommendations(
       "data",
       "analytics",
       "machine learning",
+      "deep learning",
       "ai",
       "python",
       "sql",
       "visualization",
       "analysis",
+      "statistics",
+      "dashboard",
     ])
   ) {
     recommendedProjects.push(
@@ -93,6 +143,8 @@ export function generateRecommendations(
       "cloud",
       "aws",
       "azure",
+      "monitoring",
+      "devops",
     ])
   ) {
     recommendedProjects.push(
@@ -114,6 +166,7 @@ export function generateRecommendations(
       "it",
       "troubleshoot",
       "documentation",
+      "ticketing",
     ])
   ) {
     recommendedProjects.push(
@@ -183,8 +236,14 @@ export function generateRecommendations(
 
   return {
     recommendedProjects: Array.from(new Set(recommendedProjects)).slice(0, 4),
-    recommendedCertifications: Array.from(new Set(recommendedCertifications)).slice(0, 4),
-    recommendedCourseworkFraming: Array.from(new Set(recommendedCourseworkFraming)).slice(0, 4),
-    recommendedSectionAdditions: Array.from(new Set(recommendedSectionAdditions)).slice(0, 5),
+    recommendedCertifications: Array.from(
+      new Set(recommendedCertifications)
+    ).slice(0, 4),
+    recommendedCourseworkFraming: Array.from(
+      new Set(recommendedCourseworkFraming)
+    ).slice(0, 4),
+    recommendedSectionAdditions: Array.from(
+      new Set(recommendedSectionAdditions)
+    ).slice(0, 5),
   };
 }

@@ -33,6 +33,14 @@ export type ResumeFormData = {
   extras: string;
 };
 
+export type ResumeBullet = {
+  originalInput?: string;
+  polished: string;
+  expanded?: string;
+  impactTags?: string[];
+  matchedKeywords?: string[];
+};
+
 export type GeneratedResume = {
   basics: ResumeFormData["basics"];
   target: ResumeFormData["target"];
@@ -40,11 +48,11 @@ export type GeneratedResume = {
   experience: Array<{
     role: string;
     organization: string;
-    bullets: string[];
+    bullets: ResumeBullet[];
   }>;
   projects: Array<{
     name: string;
-    bullets: string[];
+    bullets: ResumeBullet[];
   }>;
   skills: string[];
   extras: string[];
