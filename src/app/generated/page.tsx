@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   AnalyzeResumeResponse,
   GeneratedResume,
@@ -13,6 +13,7 @@ import {
 } from "@/lib/resume/normalizeGeneratedResume";
 import { toDisplayResume } from "@/lib/resume/toDisplayResume";
 import { renderHighlightedText } from "@/lib/resume/highlightKeywords";
+import { analyzeRecruiterSignals } from "@/lib/resume/recruiterSignals";
 
 const RESUME_FORM_STORAGE_KEY = "resumeFormData";
 const GENERATED_RESUME_STORAGE_KEY = "generatedResume";
@@ -123,6 +124,24 @@ export default function GeneratedPage() {
   const displayResume = toDisplayResume(generated);
   const matchedKeywords = keywordAnalysis.matchedKeywords;
 
+  const recruiterSignals = useMemo(() => {
+    const resumeText = [
+      displayResume.summary,
+      ...displayResume.experience.flatMap((item) => [
+        item.role,
+        item.organization,
+        ...item.bullets,
+      ]),
+      ...displayResume.projects.flatMap((item) => [item.name, ...item.bullets]),
+      ...displayResume.skills,
+      ...displayResume.extras,
+      displayResume.target.role,
+      displayResume.target.industry,
+    ];
+
+    return analyzeRecruiterSignals(resumeText);
+  }, [displayResume]);
+
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-16 text-white">
       <div className="mx-auto max-w-5xl">
@@ -133,8 +152,8 @@ export default function GeneratedPage() {
             </span>
             <h1 className="mt-4 text-4xl font-bold">Your Resume Draft</h1>
             <p className="mt-3 max-w-2xl text-slate-300">
-              Review the generated resume first. Matched job-description terms are
-              highlighted below.
+              Review the generated resume first. Matched job-description terms
+              are highlighted below.
             </p>
           </div>
 
@@ -153,6 +172,33 @@ export default function GeneratedPage() {
             </Link>
           </div>
         </div>
+
+        <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <SignalCard
+            title="Matched Keywords"
+            items={matchedKeywords}
+            emptyText="No matched keywords yet."
+            chipClassName="bg-emerald-100 text-emerald-800"
+          />
+          <SignalCard
+            title="Tools Recruiters Will Notice"
+            items={recruiterSignals.tools}
+            emptyText="No clear tool signals detected yet."
+            chipClassName="bg-sky-100 text-sky-800"
+          />
+          <SignalCard
+            title="Metrics and Numbers"
+            items={recruiterSignals.metrics}
+            emptyText="No metrics detected yet."
+            chipClassName="bg-amber-100 text-amber-800"
+          />
+          <SignalCard
+            title="Strong Action Verbs"
+            items={recruiterSignals.actionVerbs}
+            emptyText="No strong action verbs detected yet."
+            chipClassName="bg-violet-100 text-violet-800"
+          />
+        </section>
 
         <section className="rounded-3xl border border-white/10 bg-white p-10 text-slate-900 shadow-2xl shadow-black/30">
           <header className="border-b border-slate-200 pb-6">
@@ -304,6 +350,38 @@ function ResumeSection({
         {title}
       </h2>
       <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+function SignalCard({
+  title,
+  items,
+  emptyText,
+  chipClassName,
+}: {
+  title: string;
+  items: string[];
+  emptyText: string;
+  chipClassName: string;
+}) {
+  return (
+    <section className="rounded-3xl border border-white/10 bg-white/5 p-5">
+      <h2 className="text-base font-semibold text-white">{title}</h2>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {items.length > 0 ? (
+          items.map((item) => (
+            <span
+              key={item}
+              className={`rounded-full px-3 py-1 text-sm font-medium ${chipClassName}`}
+            >
+              {item}
+            </span>
+          ))
+        ) : (
+          <p className="text-sm text-slate-400">{emptyText}</p>
+        )}
+      </div>
     </section>
   );
 }

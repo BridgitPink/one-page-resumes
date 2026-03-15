@@ -1,60 +1,73 @@
-# One Page Resumes
+One Page Resumes
 
-AI-powered resume generator designed for **college students and early-career professionals**.
-The application transforms minimal user input into a **clean, one-page professional resume**, analyzes keyword alignment with job descriptions, and provides actionable improvement suggestions.
+AI-powered resume generator designed for college students and early-career professionals.
 
-This project demonstrates **full-stack AI integration**, including structured LLM outputs, resume scoring, keyword analysis, and recommendation systems.
+The application transforms minimal user input into a clean, one-page professional resume, analyzes keyword alignment with job descriptions, and provides actionable improvement suggestions.
 
----
+This project demonstrates full-stack AI integration, including structured LLM outputs, resume scoring, keyword analysis, recruiter-signal detection, and recommendation systems.
 
-# Project Goal
+Project Goal
 
-Build a **professional end-to-end AI product** that:
+Build a professional end-to-end AI product that:
 
-* Converts rough resume input into a **structured one-page resume**
-* Highlights **ATS keywords**
-* Scores resume competitiveness
-* Suggests **projects, certifications, and improvements**
-* Provides an **interactive preview interface**
+Converts rough resume input into a structured one-page resume
 
-The project is intended as a **portfolio piece demonstrating AI engineering and full-stack development skills**.
+Highlights ATS keywords
 
----
+Scores resume competitiveness
 
-# Tech Stack
+Detects recruiter signals (tools, metrics, verbs)
+
+Suggests projects, certifications, and resume bullets
+
+Provides an interactive analysis interface
+
+The project is intended as a portfolio piece demonstrating AI engineering and full-stack development skills.
+
+Tech Stack
 
 Frontend
 
-* Next.js (App Router)
-* React
-* TypeScript
-* TailwindCSS
+Next.js (App Router)
+
+React
+
+TypeScript
+
+TailwindCSS
 
 Backend
 
-* Next.js API Routes
-* OpenAI API (structured JSON generation)
+Next.js API Routes
+
+OpenAI API
 
 AI / Analysis
 
-* Structured LLM resume generation
-* Keyword matching engine
-* Resume scoring rubric
-* Recommendation generation
+Structured LLM resume generation
+
+Keyword matching engine
+
+Recruiter signal detection
+
+Resume scoring rubric
+
+Recommendation generation
+
+Suggested bullet generator
 
 Development Tools
 
-* Node.js
-* npm
-* Git / GitHub
+Node.js
 
----
+npm
 
-# Current Architecture
+Git / GitHub
+
+Current Architecture
 
 User Flow
 
-```
 Landing Page
      ↓
 Resume Builder Form
@@ -63,12 +76,10 @@ AI Resume Generation
      ↓
 Resume Analysis
      ↓
-Interactive Preview
-```
+Interactive Resume Interface
 
 System Pipeline
 
-```
 Builder Form
      ↓
 /api/generate-resume
@@ -78,60 +89,57 @@ OpenAI Structured Resume JSON
 /api/analyze-resume
      ↓
 Keyword Analysis
+Recruiter Signal Detection
 Resume Scoring
 Recommendations
+Suggested Bullets
      ↓
-Preview Page UI
-```
+Generated Resume UI
+Analyze UI
+Features Implemented
+1. Resume Builder
 
----
+Location
 
-# Features Implemented
-
-## 1. Resume Builder
-
-Location:
-
-```
 /builder
-```
 
-Collects minimal user input including:
+Collects minimal input including
 
-* name
-* school
-* degree
-* graduation date
-* GPA
-* experience
-* projects
-* skills
-* target role
-* job description
+name
 
-User input is intentionally **minimal and simple** to encourage quick completion.
+school
 
-The form data is stored in:
+degree
 
-```
+graduation date
+
+GPA
+
+experience
+
+projects
+
+skills
+
+target role
+
+job description
+
+The builder intentionally uses minimal input fields to encourage fast completion.
+
+Data is temporarily stored in
+
 localStorage
-```
+2. AI Resume Generation
 
----
+Endpoint
 
-## 2. AI Resume Generation
-
-Endpoint:
-
-```
 /api/generate-resume
-```
 
-Uses the OpenAI API to convert user input into a structured resume object.
+Uses OpenAI to convert user input into a structured resume object.
 
-Output structure:
+Structure
 
-```
 GeneratedResume
  ├ basics
  ├ target
@@ -140,409 +148,351 @@ GeneratedResume
  ├ projects
  ├ skills
  └ extras
-```
 
-The model uses a **JSON Schema output format** to ensure consistent structured responses.
+The system uses JSON schema structured outputs to ensure consistent responses.
 
-Prompt engineering includes:
+Prompt engineering ensures
 
-* STAR-style bullet rewriting
-* strong technical verbs
-* alignment with job descriptions
-* no hallucinated experience
+STAR-style bullets
 
----
+strong action verbs
 
-## 3. Resume Analysis Pipeline
+job description alignment
 
-Endpoint:
+no hallucinated experience
 
-```
+3. Resume Analysis Pipeline
+
+Endpoint
+
 /api/analyze-resume
-```
 
-This pipeline performs:
+Performs four major analyses.
 
-### Keyword Matching
+Keyword Matching
 
-Analyzes overlap between:
+Compares
 
-```
-resume content
+resume text
 vs
 job description
-```
 
-Outputs:
+Outputs
 
-* matched keywords
-* missing keywords
-* keyword match score
+matched keywords
 
----
+missing keywords
 
-### Resume Scoring Engine
+match score
 
-Generates a rubric score based on:
+Example
 
-* keyword alignment
-* content strength
-* completeness
-* formatting readiness
+Keyword Match Score: 67%
+Resume Scoring Engine
 
-Example output:
+Evaluates resumes using a rubric.
 
-```
+Categories
+
+Keyword alignment
+Content strength
+Completeness
+Formatting readiness
+
+Example
+
 Resume Score: 61 / 100
-```
+Recruiter Signal Detection
 
----
+The system extracts signals recruiters quickly scan for.
 
-### Recommendations Engine
+Detected signals include
 
-Suggests improvements such as:
+Tools
 
-Projects to build
+Python
+React
+SQL
+Docker
+AWS
 
-Example:
+Metrics
 
-* full-stack web application
-* data analysis project
-* dashboard project
+20%
+5 projects
+3 months
+$10K
+
+Action verbs
+
+developed
+implemented
+designed
+optimized
+
+These signals appear in the analysis interface.
+
+Recommendation Engine
+
+Suggests improvements including
+
+Projects
+
+Example
+
+Full-stack web application
+Data analysis project
+Interactive dashboard
 
 Certifications
 
-Example:
+Example
 
-* AWS Cloud Practitioner
-* Google Data Analytics
-* CompTIA Security+
+AWS Cloud Practitioner
+Google Data Analytics
+CompTIA Security+
 
-Resume Improvements
+Resume improvements
 
-Example:
+Example
 
-* add leadership
-* strengthen technical bullets
-* add measurable results
+Add measurable results
+Improve technical bullets
+Add leadership experience
+4. Keyword Highlighting Engine
 
----
+Resume text highlights matched ATS keywords.
 
-## 4. Preview Interface
+Example
 
-Location:
+Developed a React dashboard to visualize API data
 
-```
-/preview
-```
+Keywords are highlighted directly in the resume preview.
 
-Displays:
+The highlighting system ensures
 
-Left Sidebar
+full word matches
 
-* resume score
-* keyword match analysis
-* strengths
-* improvement suggestions
-* recommended projects
-* suggested certifications
-* resume build snapshot
+no partial matches
 
-Right Panel
+case-insensitive detection
 
-* formatted resume preview
-* highlighted keyword matches
-* structured resume sections
+5. Suggested Bullet Generator
 
-Sections:
+The analysis page now suggests resume bullets that improve keyword alignment.
 
-```
-Summary
-Education
-Experience
-Projects
-Skills
-Additional Information
-```
+Example suggestion
 
----
+Applied machine learning techniques in an academic project to analyze datasets and generate predictive insights.
 
-## 5. Resume Generation Test Page
+Each suggestion includes
 
-Location:
+confidence level
 
-```
-/generated
-```
+missing keywords addressed
 
-Purpose:
+rationale
 
-* test AI resume generation independently
-* display resume without analysis sidebar
+Users can
 
-Useful for debugging the generation pipeline.
+Add This Bullet
+Dismiss
 
----
+Accepted bullets are stored in
 
-# Prompt Engineering Improvements
+localStorage
 
-The resume generation prompt has been upgraded to produce stronger resume bullets.
+and shown under
 
-Key improvements:
+Accepted Suggested Bullets
+6. Recruiter Signal Dashboard
 
-* STAR-style bullet generation
-* action verbs
-* concise formatting
-* job description alignment
-* strict anti-hallucination rules
+The analysis page now includes a recruiter-focused panel.
 
-Example transformation:
+Displays
 
-Input
+Matched Keywords
+Tools Recruiters Notice
+Metrics Detected
+Strong Action Verbs
 
-```
-worked on website
-```
+This helps users understand what recruiters see quickly.
 
-Output
-
-```
-Developed web application features improving usability and performance using React and modern frontend tooling.
-```
-
----
-
-# Environment Setup
-
-Required:
-
-```
-Node.js
-npm
-OpenAI API key
-```
-
-Create:
-
-```
-.env.local
-```
-
-Add:
-
-```
-OPENAI_API_KEY=your_api_key_here
-```
-
-Start development server:
-
-```
-npm run dev
-```
-
-Open:
-
-```
-http://localhost:3000
-```
-
----
-
-# Repository Structure
-
-```
+Repository Structure
 src
  ├ app
  │  ├ api
  │  │  ├ analyze-resume
  │  │  └ generate-resume
+ │  │
  │  ├ builder
- │  ├ preview
- │  └ generated
+ │  ├ generated
+ │  └ analyze
  │
  ├ lib
  │  └ resume
+ │      ├ highlightKeywords
+ │      ├ recruiterSignals
  │      ├ keywordAnalysis
  │      ├ scoring
  │      ├ recommendations
- │      └ mockTransform
  │
  ├ types
  │  └ resume.ts
  │
  └ components
-```
+What This Project Demonstrates
 
----
+This repository now demonstrates
 
-# What Has Been Accomplished
+full-stack AI architecture
 
-This project currently demonstrates:
+structured LLM outputs
 
-Full-stack AI application architecture
+prompt engineering
 
-Structured LLM outputs using JSON schema
+ATS keyword analysis
 
-Prompt engineering for resume generation
+recruiter signal detection
 
-Resume scoring system
+resume scoring
 
-Keyword analysis pipeline
+bullet recommendation system
 
-Recommendation engine
+interactive UI feedback loops
 
-Interactive resume preview UI
+This forms a strong AI engineering portfolio project.
 
-Modular backend API routes
+Environment Setup
 
-This forms a strong **AI engineering portfolio project**.
+Requirements
 
----
+Node.js
+npm
+OpenAI API key
 
-# Next Development Steps
+Create
 
-## 1. Semantic ATS Scoring (Recommended Next)
+.env.local
 
-Replace simple keyword overlap with semantic similarity.
+Add
 
-Method:
+OPENAI_API_KEY=your_api_key_here
 
-```
+Run
+
+npm run dev
+
+Open
+
+http://localhost:3000
+Next Development Session
+
+When returning to the project, continue from here.
+
+Next tasks
+
+1. Move Suggested Bullet Engine to Backend
+
+Currently
+
+suggested bullets are generated on the client
+
+Move logic to
+
+/api/analyze-resume
+
+so the pipeline becomes
+
+resume
+↓
+analysis
+↓
+suggested bullets
+2. Allow Bullets to be Injected Into Resume Sections
+
+Current state
+
+Accepted bullets appear separately
+
+Next step
+
+insert accepted bullets into resume sections dynamically
+
+Example
+
+Experience → suggested bullet appended
+Projects → suggested bullet appended
+Skills → keyword added
+3. Semantic ATS Scoring
+
+Replace simple keyword overlap with embeddings.
+
+Method
+
 OpenAI embeddings
 cosine similarity
-```
 
-Pipeline:
+Pipeline
 
-```
-Resume text embedding
+Resume embedding
 Job description embedding
-Cosine similarity score
-```
+Similarity score
+4. Resume PDF Export
 
-This produces a more realistic ATS match score.
+Allow users to download a polished resume.
 
----
+Options
 
-## 2. Resume PDF Export
+react-pdf
+Puppeteer
+HTML to PDF
+5. Resume Templates
 
-Add ability to download a polished resume.
+Add selectable templates
 
-Options:
-
-* react-pdf
-* Puppeteer
-* HTML to PDF rendering
-
-This turns the tool into a **usable product**.
-
----
-
-## 3. Multiple Resume Templates
-
-Add three professional templates:
-
-Example:
-
-```
 Modern Tech
 Minimal Professional
-Compact ATS-Friendly
-```
+Compact ATS
+6. Persistent User Accounts
 
-Users could switch templates instantly.
+Add authentication and storage
 
----
+Stack
 
-## 4. Bullet Rewriter Tool
-
-Allow users to paste individual bullets and receive improved versions.
-
-Example:
-
-Input:
-
-```
-worked with data
-```
-
-Output:
-
-```
-Analyzed datasets using Python to identify trends and support data-driven decision making.
-```
-
----
-
-## 5. Resume Version Saving
-
-Add persistence:
-
-* database
-* user accounts
-* saved resume versions
-
-Suggested stack:
-
-```
 PostgreSQL
-Prisma ORM
+Prisma
 NextAuth
-```
+Future Vision
 
----
+This project can evolve into
 
-## 6. Deployment
-
-Deploy the application.
-
-Recommended platform:
-
-```
-Vercel
-```
-
-Benefits:
-
-* easy Next.js deployment
-* serverless API routes
-* environment variable support
-
----
-
-# Future Vision
-
-This project can evolve into a full product:
-
-```
 AI Resume Builder
 ATS Simulator
 Career Coaching Tool
-```
 
-Potential features:
+Future ideas
 
-* LinkedIn resume import
-* GitHub project analysis
-* automatic portfolio suggestions
-* internship preparation tools
+LinkedIn resume import
 
----
+GitHub project scanning
 
-# Resume Project Value
+internship preparation tools
 
-This project demonstrates:
+portfolio project suggestions
 
-* AI integration
-* backend architecture
-* prompt engineering
-* structured LLM outputs
-* product design thinking
-
-It serves as a **strong portfolio example of applied AI engineering**.
-
----
-
-# License
+License
 
 MIT License
+
+Where to Resume Tomorrow
+
+Continue development starting here:
+
+src/lib/resume/suggestedBullets.ts
+
+Then update
+
+/api/analyze-resume
+
+to move bullet suggestions server-side instead of client-side.

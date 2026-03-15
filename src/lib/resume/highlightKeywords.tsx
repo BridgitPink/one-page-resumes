@@ -4,40 +4,100 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-export function renderHighlightedText(
-  text: string,
-  keywords: string[],
-  className = "font-semibold text-slate-950"
-): React.ReactNode {
-  if (!text) return text;
-  if (!keywords.length) return text;
-
-  const normalizedKeywords = Array.from(
+function normalizeTerms(terms: string[]): string[] {
+  return Array.from(
     new Set(
-      keywords
-        .map((keyword) => keyword.trim())
+      terms
+        .map((term) => term.trim())
         .filter(Boolean)
         .sort((a, b) => b.length - a.length)
     )
   );
+}
 
-  if (!normalizedKeywords.length) return text;
+function buildWholeTermRegex(terms: string[]): RegExp | null {
+  const normalizedTerms = normalizeTerms(terms);
 
-  const pattern = normalizedKeywords.map(escapeRegex).join("|");
-  const regex = new RegExp(`(${pattern})`, "gi");
-  const parts = text.split(regex);
+  if (!normalizedTerms.length) return null;
 
-  return parts.map((part, index) => {
-    const isMatch = normalizedKeywords.some(
-      (keyword) => keyword.toLowerCase() === part.toLowerCase()
-    );
+  const pattern = normalizedTerms.map((term) => {
+    const escaped = escapeRegex(term);
 
-    return isMatch ? (
-      <strong key={`${part}-${index}`} className={className}>
-        {part}
-      </strong>
-    ) : (
-      <React.Fragment key={`${part}-${index}`}>{part}</React.Fragment>
-    );
+    if (term.includes(" ")) {
+      return `(?<!\\w)${escaped}(?!\\w)`;
+    }
+
+    return `\\b${escaped}\\b`;
   });
+
+  return new RegExp(`(${pattern.join("|")})`, "gi");
+}
+
+function splitAndHighlight(
+  text: string,
+  terms: string[],
+  className: string,
+  keyPrefix: string
+): React.ReactNode {
+  if (!text) return text;
+
+  const normalizedTerms = normalizeTerms(terms);
+  if (!normalizedTerms.length) return text;
+
+  const regex = buildWholeTermRegex(normalizedTerms);
+  if (!regex) return text;
+
+  const matches = Array.from(text.matchAll(regex));
+  if (!matches.length) return text;
+
+  const nodes: React.ReactNode[] = [];
+  let lastIndex = 0;
+
+  matches.forEach((match, index) => {
+    const matchedText = match[0];
+    const start = match.index ?? 0;
+    const end = start + matchedText.length;
+
+    if (start > lastIndex) {
+      nodes.push(
+        <React.Fragment key={`${keyPrefix}-text-${index}`}>
+          {text.slice(lastIndex, start)}
+        </React.Fragment>
+      );
+    }
+
+    nodes.push(
+      <strong key={`${keyPrefix}-match-${index}`} className={className}>
+        {matchedText}
+      </strong>
+    );
+
+    lastIndex = end;
+  });
+
+  if (lastIndex < text.length) {
+    nodes.push(
+      <React.Fragment key={`${keyPrefix}-tail`}>
+        {text.slice(lastIndex)}
+      </React.Fragment>
+    );
+  }
+
+  return nodes;
+}
+
+export function renderHighlightedText(
+  text: string,
+  keywords: string[],
+  className = "font-semibold bg-emerald-100 text-slate-950 px-0.5 rounded"
+): React.ReactNode {
+  return splitAndHighlight(text, keywords, className, "keyword");
+}
+
+export function renderRecruiterSignalText(
+  text: string,
+  signals: string[],
+  className = "font-semibold bg-amber-100 text-slate-900 px-0.5 rounded"
+): React.ReactNode {
+  return splitAndHighlight(text, signals, className, "signal");
 }
