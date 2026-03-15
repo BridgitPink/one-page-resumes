@@ -49,3 +49,10 @@ export type GeneratedResume = {
   skills: string[];
   extras: string[];
 };
+
+export type KeywordAnalysis = {
+  extractedKeywords: string[];
+  matchedKeywords: string[];
+  missingKeywords: string[];
+  matchScore: number;
+};
