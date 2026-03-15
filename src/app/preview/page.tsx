@@ -2,10 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { analyzeKeywordMatch } from "@/lib/resume/keywordAnalysis";
-import { generateMockResume } from "@/lib/resume/mockTransform";
-import { scoreResume } from "@/lib/resume/scoring";
-import { generateRecommendations } from "@/lib/resume/recommendations";
 import type {
   GeneratedResume,
   KeywordAnalysis,
@@ -13,6 +9,13 @@ import type {
   ResumeRecommendations,
   ResumeScore,
 } from "@/types/resume";
+
+type AnalyzeResumeResponse = {
+  generated: GeneratedResume;
+  keywordAnalysis: KeywordAnalysis;
+  resumeScore: ResumeScore;
+  recommendations: ResumeRecommendations;
+};
 
 export default function PreviewPage() {
   const [data, setData] = useState<ResumeFormData | null>(null);
@@ -22,38 +25,68 @@ export default function PreviewPage() {
   const [resumeScore, setResumeScore] = useState<ResumeScore | null>(null);
   const [recommendations, setRecommendations] =
     useState<ResumeRecommendations | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const raw = localStorage.getItem("resumeFormData");
-    if (!raw) return;
+    if (!raw) {
+      setIsLoading(false);
+      return;
+    }
 
     const parsed: ResumeFormData = JSON.parse(raw);
-    const generatedResume = generateMockResume(parsed);
-    const analysis = analyzeKeywordMatch(
-      parsed.target.jobDescription,
-      generatedResume
-    );
-    const scored = scoreResume(generatedResume, analysis);
-    const recommended = generateRecommendations(
-      generatedResume,
-      analysis,
-      scored
-    );
-
     setData(parsed);
-    setGenerated(generatedResume);
-    setKeywordAnalysis(analysis);
-    setResumeScore(scored);
-    setRecommendations(recommended);
+
+    const analyzeResume = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const response = await fetch("/api/analyze-resume", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(parsed),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to analyze resume.");
+        }
+
+        const result: AnalyzeResumeResponse = await response.json();
+
+        setGenerated(result.generated);
+        setKeywordAnalysis(result.keywordAnalysis);
+        setResumeScore(result.resumeScore);
+        setRecommendations(result.recommendations);
+      } catch (err) {
+        console.error(err);
+        setError("Something went wrong while generating the resume preview.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void analyzeResume();
   }, []);
 
-  if (
-    !data ||
-    !generated ||
-    !keywordAnalysis ||
-    !resumeScore ||
-    !recommendations
-  ) {
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
+        <div className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8">
+          <h1 className="text-3xl font-bold">Generating preview...</h1>
+          <p className="mt-4 text-slate-300">
+            We are analyzing your input, matching keywords, scoring the resume,
+            and generating recommendations.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!data) {
     return (
       <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
         <div className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8">
@@ -68,6 +101,40 @@ export default function PreviewPage() {
           >
             Go to Builder
           </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (
+    error ||
+    !generated ||
+    !keywordAnalysis ||
+    !resumeScore ||
+    !recommendations
+  ) {
+    return (
+      <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
+        <div className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8">
+          <h1 className="text-3xl font-bold">Preview unavailable</h1>
+          <p className="mt-4 text-slate-300">
+            {error || "We could not generate the preview right now."}
+          </p>
+          <div className="mt-6 flex gap-3">
+            <Link
+              href="/builder"
+              className="inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950"
+            >
+              Back to Builder
+            </Link>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       </main>
     );
@@ -89,9 +156,8 @@ export default function PreviewPage() {
               Structured resume preview
             </h1>
             <p className="mt-3 max-w-2xl text-slate-300">
-              This preview now includes keyword matching, a harsh rubric-based
-              resume score, and targeted recommendations to help strengthen the
-              final one-page resume.
+              This preview is now powered through an API route, making it much
+              easier to swap the mock pipeline with a real AI backend later.
             </p>
           </div>
 
@@ -223,7 +289,9 @@ export default function PreviewPage() {
             </section>
 
             <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
-              <h2 className="text-xl font-semibold">Suggested Certifications</h2>
+              <h2 className="text-xl font-semibold">
+                Suggested Certifications
+              </h2>
               <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-300">
                 {recommendations.recommendedCertifications.map((item) => (
                   <li key={item}>{item}</li>
