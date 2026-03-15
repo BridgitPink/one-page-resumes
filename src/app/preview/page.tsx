@@ -4,16 +4,19 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { analyzeKeywordMatch } from "@/lib/resume/keywordAnalysis";
 import { generateMockResume } from "@/lib/resume/mockTransform";
+import { scoreResume } from "@/lib/resume/scoring";
 import type {
   GeneratedResume,
   KeywordAnalysis,
   ResumeFormData,
+  ResumeScore,
 } from "@/types/resume";
 
 export default function PreviewPage() {
   const [data, setData] = useState<ResumeFormData | null>(null);
   const [generated, setGenerated] = useState<GeneratedResume | null>(null);
   const [keywordAnalysis, setKeywordAnalysis] = useState<KeywordAnalysis | null>(null);
+  const [resumeScore, setResumeScore] = useState<ResumeScore | null>(null);
 
   useEffect(() => {
     const raw = localStorage.getItem("resumeFormData");
@@ -22,13 +25,15 @@ export default function PreviewPage() {
     const parsed: ResumeFormData = JSON.parse(raw);
     const generatedResume = generateMockResume(parsed);
     const analysis = analyzeKeywordMatch(parsed.target.jobDescription, generatedResume);
+    const scored = scoreResume(generatedResume, analysis);
 
     setData(parsed);
     setGenerated(generatedResume);
     setKeywordAnalysis(analysis);
+    setResumeScore(scored);
   }, []);
 
-  if (!data || !generated || !keywordAnalysis) {
+  if (!data || !generated || !keywordAnalysis || !resumeScore) {
     return (
       <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
         <div className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8">
@@ -63,7 +68,7 @@ export default function PreviewPage() {
               Structured resume preview
             </h1>
             <p className="mt-3 max-w-2xl text-slate-300">
-              This preview now includes keyword analysis from the pasted job description, showing what your resume already reflects and what may still be missing.
+              This preview now includes keyword matching and a harsh rubric-based resume score.
             </p>
           </div>
 
@@ -78,33 +83,35 @@ export default function PreviewPage() {
         <div className="grid gap-8 xl:grid-cols-[340px_minmax(0,1fr)]">
           <aside className="space-y-8">
             <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
-              <h2 className="text-xl font-semibold">Build Snapshot</h2>
+              <h2 className="text-xl font-semibold">Resume Score</h2>
 
-              <div className="mt-6 space-y-5 text-sm text-slate-300">
-                <div>
-                  <p className="font-medium text-white">Target Role</p>
-                  <p>{generated.target.role || "Not provided"}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-white">Industry</p>
-                  <p>{generated.target.industry || "Not provided"}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-white">Experience Sections</p>
-                  <p>{experienceCount}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-white">Projects</p>
-                  <p>{projectCount}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-white">Skills Parsed</p>
-                  <p>{skillsCount}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-white">Job Description Added</p>
-                  <p>{generated.target.jobDescription ? "Yes" : "No"}</p>
-                </div>
+              <div className="mt-4 rounded-2xl border border-rose-400/20 bg-rose-400/10 p-4">
+                <p className="text-sm text-slate-300">Overall score</p>
+                <p className="mt-2 text-4xl font-bold text-white">
+                  {resumeScore.overallScore}/100
+                </p>
+                <p className="mt-2 text-xs text-slate-400">
+                  Scored conservatively for early-career competitiveness.
+                </p>
+              </div>
+
+              <div className="mt-6 space-y-4 text-sm">
+                <ScoreRow
+                  label="Keyword Alignment"
+                  value={resumeScore.keywordAlignmentScore}
+                />
+                <ScoreRow
+                  label="Content Strength"
+                  value={resumeScore.contentStrengthScore}
+                />
+                <ScoreRow
+                  label="Completeness"
+                  value={resumeScore.completenessScore}
+                />
+                <ScoreRow
+                  label="Formatting Readiness"
+                  value={resumeScore.formattingReadinessScore}
+                />
               </div>
             </section>
 
@@ -157,6 +164,57 @@ export default function PreviewPage() {
                       No obvious missing keywords detected.
                     </p>
                   )}
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
+              <h2 className="text-xl font-semibold">Strengths</h2>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-300">
+                {resumeScore.strengths.length > 0 ? (
+                  resumeScore.strengths.map((item) => <li key={item}>{item}</li>)
+                ) : (
+                  <li>No major strengths detected yet.</li>
+                )}
+              </ul>
+            </section>
+
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
+              <h2 className="text-xl font-semibold">Improve Next</h2>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-300">
+                {resumeScore.improvementSuggestions.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
+              <h2 className="text-xl font-semibold">Build Snapshot</h2>
+
+              <div className="mt-6 space-y-5 text-sm text-slate-300">
+                <div>
+                  <p className="font-medium text-white">Target Role</p>
+                  <p>{generated.target.role || "Not provided"}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-white">Industry</p>
+                  <p>{generated.target.industry || "Not provided"}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-white">Experience Sections</p>
+                  <p>{experienceCount}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-white">Projects</p>
+                  <p>{projectCount}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-white">Skills Parsed</p>
+                  <p>{skillsCount}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-white">Job Description Added</p>
+                  <p>{generated.target.jobDescription ? "Yes" : "No"}</p>
                 </div>
               </div>
             </section>
@@ -337,5 +395,22 @@ function ResumeSection({
       </h2>
       <div className="mt-4">{children}</div>
     </section>
+  );
+}
+
+function ScoreRow({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-slate-300">{label}</span>
+        <span className="font-semibold text-white">{value}/100</span>
+      </div>
+      <div className="h-2 rounded-full bg-white/10">
+        <div
+          className="h-2 rounded-full bg-white"
+          style={{ width: `${value}%` }}
+        />
+      </div>
+    </div>
   );
 }

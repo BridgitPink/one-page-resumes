@@ -56,3 +56,13 @@ export type KeywordAnalysis = {
   missingKeywords: string[];
   matchScore: number;
 };
+
+export type ResumeScore = {
+  overallScore: number;
+  keywordAlignmentScore: number;
+  contentStrengthScore: number;
+  completenessScore: number;
+  formattingReadinessScore: number;
+  strengths: string[];
+  improvementSuggestions: string[];
+};
