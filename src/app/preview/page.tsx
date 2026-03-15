@@ -5,18 +5,23 @@ import { useEffect, useState } from "react";
 import { analyzeKeywordMatch } from "@/lib/resume/keywordAnalysis";
 import { generateMockResume } from "@/lib/resume/mockTransform";
 import { scoreResume } from "@/lib/resume/scoring";
+import { generateRecommendations } from "@/lib/resume/recommendations";
 import type {
   GeneratedResume,
   KeywordAnalysis,
   ResumeFormData,
+  ResumeRecommendations,
   ResumeScore,
 } from "@/types/resume";
 
 export default function PreviewPage() {
   const [data, setData] = useState<ResumeFormData | null>(null);
   const [generated, setGenerated] = useState<GeneratedResume | null>(null);
-  const [keywordAnalysis, setKeywordAnalysis] = useState<KeywordAnalysis | null>(null);
+  const [keywordAnalysis, setKeywordAnalysis] =
+    useState<KeywordAnalysis | null>(null);
   const [resumeScore, setResumeScore] = useState<ResumeScore | null>(null);
+  const [recommendations, setRecommendations] =
+    useState<ResumeRecommendations | null>(null);
 
   useEffect(() => {
     const raw = localStorage.getItem("resumeFormData");
@@ -24,22 +29,38 @@ export default function PreviewPage() {
 
     const parsed: ResumeFormData = JSON.parse(raw);
     const generatedResume = generateMockResume(parsed);
-    const analysis = analyzeKeywordMatch(parsed.target.jobDescription, generatedResume);
+    const analysis = analyzeKeywordMatch(
+      parsed.target.jobDescription,
+      generatedResume
+    );
     const scored = scoreResume(generatedResume, analysis);
+    const recommended = generateRecommendations(
+      generatedResume,
+      analysis,
+      scored
+    );
 
     setData(parsed);
     setGenerated(generatedResume);
     setKeywordAnalysis(analysis);
     setResumeScore(scored);
+    setRecommendations(recommended);
   }, []);
 
-  if (!data || !generated || !keywordAnalysis || !resumeScore) {
+  if (
+    !data ||
+    !generated ||
+    !keywordAnalysis ||
+    !resumeScore ||
+    !recommendations
+  ) {
     return (
       <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
         <div className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8">
           <h1 className="text-3xl font-bold">No resume data found</h1>
           <p className="mt-4 text-slate-300">
-            Fill out the builder form first so we can preview your generated resume.
+            Fill out the builder form first so we can preview your generated
+            resume.
           </p>
           <Link
             href="/builder"
@@ -68,7 +89,9 @@ export default function PreviewPage() {
               Structured resume preview
             </h1>
             <p className="mt-3 max-w-2xl text-slate-300">
-              This preview now includes keyword matching and a harsh rubric-based resume score.
+              This preview now includes keyword matching, a harsh rubric-based
+              resume score, and targeted recommendations to help strengthen the
+              final one-page resume.
             </p>
           </div>
 
@@ -172,7 +195,9 @@ export default function PreviewPage() {
               <h2 className="text-xl font-semibold">Strengths</h2>
               <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-300">
                 {resumeScore.strengths.length > 0 ? (
-                  resumeScore.strengths.map((item) => <li key={item}>{item}</li>)
+                  resumeScore.strengths.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))
                 ) : (
                   <li>No major strengths detected yet.</li>
                 )}
@@ -183,6 +208,42 @@ export default function PreviewPage() {
               <h2 className="text-xl font-semibold">Improve Next</h2>
               <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-300">
                 {resumeScore.improvementSuggestions.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
+              <h2 className="text-xl font-semibold">Suggested Projects</h2>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-300">
+                {recommendations.recommendedProjects.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
+              <h2 className="text-xl font-semibold">Suggested Certifications</h2>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-300">
+                {recommendations.recommendedCertifications.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
+              <h2 className="text-xl font-semibold">Coursework Framing Ideas</h2>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-300">
+                {recommendations.recommendedCourseworkFraming.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
+              <h2 className="text-xl font-semibold">Recommended Additions</h2>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-300">
+                {recommendations.recommendedSectionAdditions.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
@@ -282,14 +343,19 @@ export default function PreviewPage() {
 
                       <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
                         {experience.bullets.map((bullet, bulletIndex) => {
-                          const isMatched = keywordAnalysis.matchedKeywords.some((keyword) =>
-                            bullet.toLowerCase().includes(keyword.toLowerCase())
-                          );
+                          const isMatched =
+                            keywordAnalysis.matchedKeywords.some((keyword) =>
+                              bullet
+                                .toLowerCase()
+                                .includes(keyword.toLowerCase())
+                            );
 
                           return (
                             <li
                               key={`${experience.role}-${bulletIndex}`}
-                              className={isMatched ? "font-medium text-slate-900" : ""}
+                              className={
+                                isMatched ? "font-medium text-slate-900" : ""
+                              }
                             >
                               {bullet}
                             </li>
@@ -314,14 +380,19 @@ export default function PreviewPage() {
                       <h3 className="font-semibold">{project.name}</h3>
                       <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
                         {project.bullets.map((bullet, bulletIndex) => {
-                          const isMatched = keywordAnalysis.matchedKeywords.some((keyword) =>
-                            bullet.toLowerCase().includes(keyword.toLowerCase())
-                          );
+                          const isMatched =
+                            keywordAnalysis.matchedKeywords.some((keyword) =>
+                              bullet
+                                .toLowerCase()
+                                .includes(keyword.toLowerCase())
+                            );
 
                           return (
                             <li
                               key={`${project.name}-${bulletIndex}`}
-                              className={isMatched ? "font-medium text-slate-900" : ""}
+                              className={
+                                isMatched ? "font-medium text-slate-900" : ""
+                              }
                             >
                               {bullet}
                             </li>
@@ -340,7 +411,10 @@ export default function PreviewPage() {
               {generated.skills.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {generated.skills.map((skill) => {
-                    const matched = keywordAnalysis.matchedKeywords.includes(skill);
+                    const matched = keywordAnalysis.matchedKeywords.some(
+                      (keyword) =>
+                        keyword.toLowerCase() === skill.toLowerCase()
+                    );
 
                     return (
                       <span

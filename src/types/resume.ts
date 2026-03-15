@@ -66,3 +66,10 @@ export type ResumeScore = {
   strengths: string[];
   improvementSuggestions: string[];
 };
+
+export type ResumeRecommendations = {
+  recommendedProjects: string[];
+  recommendedCertifications: string[];
+  recommendedCourseworkFraming: string[];
+  recommendedSectionAdditions: string[];
+};
