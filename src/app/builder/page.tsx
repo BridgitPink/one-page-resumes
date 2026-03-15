@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type ExperienceEntry = {
@@ -13,20 +14,99 @@ type ProjectEntry = {
   details: string;
 };
 
-export default function BuilderPage() {
-  const [experiences, setExperiences] = useState<ExperienceEntry[]>([
-    { role: "", organization: "", details: "" },
-  ]);
+type ResumeFormData = {
+  basics: {
+    fullName: string;
+    email: string;
+    phone: string;
+    location: string;
+    linkedin: string;
+    github: string;
+    school: string;
+    degree: string;
+    graduationDate: string;
+    gpa: string;
+  };
+  target: {
+    role: string;
+    industry: string;
+    jobDescription: string;
+  };
+  experiences: ExperienceEntry[];
+  projects: ProjectEntry[];
+  skills: string;
+  extras: string;
+};
 
-  const [projects, setProjects] = useState<ProjectEntry[]>([
-    { name: "", details: "" },
-  ]);
+const emptyExperience = (): ExperienceEntry => ({
+  role: "",
+  organization: "",
+  details: "",
+});
+
+const emptyProject = (): ProjectEntry => ({
+  name: "",
+  details: "",
+});
+
+export default function BuilderPage() {
+  const router = useRouter();
+
+  const [formData, setFormData] = useState<ResumeFormData>({
+    basics: {
+      fullName: "",
+      email: "",
+      phone: "",
+      location: "",
+      linkedin: "",
+      github: "",
+      school: "",
+      degree: "",
+      graduationDate: "",
+      gpa: "",
+    },
+    target: {
+      role: "",
+      industry: "",
+      jobDescription: "",
+    },
+    experiences: [emptyExperience()],
+    projects: [emptyProject()],
+    skills: "",
+    extras: "",
+  });
+
+  const updateBasics = (
+    field: keyof ResumeFormData["basics"],
+    value: string
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      basics: {
+        ...prev.basics,
+        [field]: value,
+      },
+    }));
+  };
+
+  const updateTarget = (
+    field: keyof ResumeFormData["target"],
+    value: string
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      target: {
+        ...prev.target,
+        [field]: value,
+      },
+    }));
+  };
 
   const addExperience = () => {
-    setExperiences((prev) => [
+    setFormData((prev) => ({
       ...prev,
-      { role: "", organization: "", details: "" },
-    ]);
+      experiences: [...prev.experiences, emptyExperience()],
+    }));
   };
 
   const updateExperience = (
@@ -34,15 +114,19 @@ export default function BuilderPage() {
     field: keyof ExperienceEntry,
     value: string
   ) => {
-    setExperiences((prev) =>
-      prev.map((item, i) =>
+    setFormData((prev) => ({
+      ...prev,
+      experiences: prev.experiences.map((item, i) =>
         i === index ? { ...item, [field]: value } : item
-      )
-    );
+      ),
+    }));
   };
 
   const addProject = () => {
-    setProjects((prev) => [...prev, { name: "", details: "" }]);
+    setFormData((prev) => ({
+      ...prev,
+      projects: [...prev.projects, emptyProject()],
+    }));
   };
 
   const updateProject = (
@@ -50,11 +134,17 @@ export default function BuilderPage() {
     field: keyof ProjectEntry,
     value: string
   ) => {
-    setProjects((prev) =>
-      prev.map((item, i) =>
+    setFormData((prev) => ({
+      ...prev,
+      projects: prev.projects.map((item, i) =>
         i === index ? { ...item, [field]: value } : item
-      )
-    );
+      ),
+    }));
+  };
+
+  const handleGenerateResume = () => {
+    localStorage.setItem("resumeFormData", JSON.stringify(formData));
+    router.push("/preview");
   };
 
   return (
@@ -81,16 +171,66 @@ export default function BuilderPage() {
             </p>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <Input label="Full Name" placeholder="Jane Doe" />
-              <Input label="Email" placeholder="jane@email.com" />
-              <Input label="Phone" placeholder="(555) 555-5555" />
-              <Input label="Location" placeholder="Raleigh, NC" />
-              <Input label="LinkedIn" placeholder="linkedin.com/in/janedoe" />
-              <Input label="GitHub or Portfolio" placeholder="github.com/janedoe" />
-              <Input label="School" placeholder="Fayetteville State University" />
-              <Input label="Degree / Major" placeholder="B.S. in Computer Science" />
-              <Input label="Graduation Date" placeholder="May 2027" />
-              <Input label="GPA (optional)" placeholder="3.8" />
+              <Input
+                label="Full Name"
+                placeholder="Jane Doe"
+                value={formData.basics.fullName}
+                onChange={(value) => updateBasics("fullName", value)}
+              />
+              <Input
+                label="Email"
+                placeholder="jane@email.com"
+                value={formData.basics.email}
+                onChange={(value) => updateBasics("email", value)}
+              />
+              <Input
+                label="Phone"
+                placeholder="(555) 555-5555"
+                value={formData.basics.phone}
+                onChange={(value) => updateBasics("phone", value)}
+              />
+              <Input
+                label="Location"
+                placeholder="Raleigh, NC"
+                value={formData.basics.location}
+                onChange={(value) => updateBasics("location", value)}
+              />
+              <Input
+                label="LinkedIn"
+                placeholder="linkedin.com/in/janedoe"
+                value={formData.basics.linkedin}
+                onChange={(value) => updateBasics("linkedin", value)}
+              />
+              <Input
+                label="GitHub or Portfolio"
+                placeholder="github.com/janedoe"
+                value={formData.basics.github}
+                onChange={(value) => updateBasics("github", value)}
+              />
+              <Input
+                label="School"
+                placeholder="Fayetteville State University"
+                value={formData.basics.school}
+                onChange={(value) => updateBasics("school", value)}
+              />
+              <Input
+                label="Degree / Major"
+                placeholder="B.S. in Computer Science"
+                value={formData.basics.degree}
+                onChange={(value) => updateBasics("degree", value)}
+              />
+              <Input
+                label="Graduation Date"
+                placeholder="May 2027"
+                value={formData.basics.graduationDate}
+                onChange={(value) => updateBasics("graduationDate", value)}
+              />
+              <Input
+                label="GPA (optional)"
+                placeholder="3.8"
+                value={formData.basics.gpa}
+                onChange={(value) => updateBasics("gpa", value)}
+              />
             </div>
           </section>
 
@@ -101,8 +241,18 @@ export default function BuilderPage() {
             </p>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <Input label="Target Role" placeholder="Software Engineering Intern" />
-              <Input label="Target Industry" placeholder="Tech / AI / Robotics" />
+              <Input
+                label="Target Role"
+                placeholder="Software Engineering Intern"
+                value={formData.target.role}
+                onChange={(value) => updateTarget("role", value)}
+              />
+              <Input
+                label="Target Industry"
+                placeholder="Tech / AI / Robotics"
+                value={formData.target.industry}
+                onChange={(value) => updateTarget("industry", value)}
+              />
             </div>
 
             <div className="mt-4">
@@ -110,6 +260,8 @@ export default function BuilderPage() {
                 label="Paste the Job Description"
                 placeholder="Paste the full job description here. We will use it to identify keywords, skills, and role-specific language."
                 rows={8}
+                value={formData.target.jobDescription}
+                onChange={(value) => updateTarget("jobDescription", value)}
               />
             </div>
           </section>
@@ -122,7 +274,7 @@ export default function BuilderPage() {
             </p>
 
             <div className="mt-6 space-y-6">
-              {experiences.map((experience, index) => (
+              {formData.experiences.map((experience, index) => (
                 <div
                   key={index}
                   className="rounded-2xl border border-white/10 bg-slate-950/60 p-5"
@@ -177,7 +329,7 @@ export default function BuilderPage() {
             </p>
 
             <div className="mt-6 space-y-6">
-              {projects.map((project, index) => (
+              {formData.projects.map((project, index) => (
                 <div
                   key={index}
                   className="rounded-2xl border border-white/10 bg-slate-950/60 p-5"
@@ -225,6 +377,10 @@ export default function BuilderPage() {
                 label="Skills"
                 placeholder="Example: Python, Java, SQL, Git, React, teamwork, troubleshooting, documentation"
                 rows={4}
+                value={formData.skills}
+                onChange={(value) =>
+                  setFormData((prev) => ({ ...prev, skills: value }))
+                }
               />
             </div>
           </section>
@@ -240,6 +396,10 @@ export default function BuilderPage() {
                 label="Leadership, Volunteer Work, Certifications, Clubs, Awards, Coursework"
                 placeholder="Example: Women in Technology club, volunteer coding workshop, Google Data Analytics Certificate, relevant coursework in Data Structures and Machine Learning"
                 rows={5}
+                value={formData.extras}
+                onChange={(value) =>
+                  setFormData((prev) => ({ ...prev, extras: value }))
+                }
               />
             </div>
           </section>
@@ -247,13 +407,13 @@ export default function BuilderPage() {
           <section className="rounded-3xl border border-emerald-400/20 bg-emerald-400/5 p-6">
             <h2 className="text-2xl font-semibold">Next Step</h2>
             <p className="mt-2 max-w-3xl text-sm text-slate-300">
-              The next feature will send this information into an AI pipeline that:
-              parses the job description, rewrites bullets in STAR format, builds a
-              one-page resume, suggests missing skills, and scores the result harshly.
+              For now, this will generate a mock structured preview from your input.
+              Next, we’ll connect a real AI pipeline.
             </p>
 
             <button
               type="button"
+              onClick={handleGenerateResume}
               className="mt-6 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-200"
             >
               Generate Resume
