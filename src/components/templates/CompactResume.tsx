@@ -79,16 +79,11 @@ export function CompactResume({ resume, boldState, onWordClick }: CompactResumeP
         </section>
       )}
 
-      {/* Education */}
-      {(basics.school || basics.degree) && (
+      {/* Skills */}
+      {skills.length > 0 && (
         <section className="mt-2">
-          <h2 className="text-[12px] font-bold uppercase border-b border-gray-400 pb-0.5">Education</h2>
-          <div className="mt-1 flex items-start justify-between gap-2">
-            <div className="text-[12px]">
-              {educationLeft && <p className="font-medium">{educationLeft}</p>}
-            </div>
-            {educationRight && <p className="text-[11px] text-gray-700 flex-shrink-0">{educationRight}</p>}
-          </div>
+          <h2 className="text-[12px] font-bold uppercase border-b border-gray-400 pb-0.5">Skills</h2>
+          <p className="mt-1 text-[12px] leading-5">{skills.join(" • ")}</p>
         </section>
       )}
 
@@ -167,11 +162,16 @@ export function CompactResume({ resume, boldState, onWordClick }: CompactResumeP
         </section>
       )}
 
-      {/* Skills */}
-      {skills.length > 0 && (
+      {/* Education */}
+      {(basics.school || basics.degree) && (
         <section className="mt-2">
-          <h2 className="text-[12px] font-bold uppercase border-b border-gray-400 pb-0.5">Skills</h2>
-          <p className="mt-1 text-[12px] leading-5">{skills.join(" • ")}</p>
+          <h2 className="text-[12px] font-bold uppercase border-b border-gray-400 pb-0.5">Education</h2>
+          <div className="mt-1 flex items-start justify-between gap-2">
+            <div className="text-[12px]">
+              {educationLeft && <p className="font-medium">{educationLeft}</p>}
+            </div>
+            {educationRight && <p className="text-[11px] text-gray-700 flex-shrink-0">{educationRight}</p>}
+          </div>
         </section>
       )}
 

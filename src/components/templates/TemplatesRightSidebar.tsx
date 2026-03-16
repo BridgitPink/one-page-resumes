@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { GeneratedResume } from "@/types/resume";
 import type { BoldWordsState } from "@/lib/resume/storage";
 
@@ -19,6 +20,7 @@ export function TemplatesRightSidebar({
   onDownloadPDF,
   onDownloadWord,
 }: TemplatesRightSidebarProps) {
+  const router = useRouter();
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [isDownloadingWord, setIsDownloadingWord] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -100,6 +102,16 @@ export function TemplatesRightSidebar({
           <p className="mt-3 text-xs text-slate-400 text-center">
             Template: <span className="font-medium">{selectedTemplate}</span>
           </p>
+        </div>
+
+        {/* Continue to Analyze */}
+        <div className="border-t border-slate-700 pt-6">
+          <button
+            onClick={() => router.push("/analyze")}
+            className="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition-colors"
+          >
+            Continue to Analyze
+          </button>
         </div>
       </div>
     </aside>

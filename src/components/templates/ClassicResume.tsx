@@ -66,28 +66,23 @@ export function ClassicResume({ resume, boldState, onWordClick }: ClassicResumeP
 
       {/* Summary */}
       {resume.summary && (
-        <section className="mt-5">
+        <section className="mt-5 border-b border-neutral-400 pb-2">
           <h2 className="text-[14px] font-bold uppercase tracking-[0.04em]">Summary</h2>
           <p className="mt-2 text-[13px] leading-6">{resume.summary}</p>
         </section>
       )}
 
-      {/* Education */}
-      {(basics.school || basics.degree) && (
-        <section className="mt-5">
-          <h2 className="text-[14px] font-bold uppercase tracking-[0.04em]">Education</h2>
-          <div className="mt-2 flex items-start justify-between gap-4">
-            <div>
-              {educationLeft && <p className="text-[13px] font-medium">{educationLeft}</p>}
-            </div>
-            {educationRight && <p className="text-[13px] text-neutral-700">{educationRight}</p>}
-          </div>
+      {/* Skills */}
+      {skills.length > 0 && (
+        <section className="mt-5 border-b border-neutral-400 pb-2">
+          <h2 className="text-[14px] font-bold uppercase tracking-[0.04em]">Skills</h2>
+          <p className="mt-2 text-[13px] leading-6">{skills.join(", ")}</p>
         </section>
       )}
 
       {/* Experience */}
       {experience.length > 0 && (
-        <section className="mt-5">
+        <section className="mt-5 border-b border-neutral-400 pb-2">
           <h2 className="text-[14px] font-bold uppercase tracking-[0.04em]">Experience</h2>
           <div className="mt-3 space-y-4">
             {experience.map((item, expIndex) => (
@@ -126,7 +121,7 @@ export function ClassicResume({ resume, boldState, onWordClick }: ClassicResumeP
 
       {/* Projects */}
       {projects.length > 0 && (
-        <section className="mt-5">
+        <section className="mt-5 border-b border-neutral-400 pb-2">
           <h2 className="text-[14px] font-bold uppercase tracking-[0.04em]">Projects</h2>
           <div className="mt-3 space-y-4">
             {projects.map((project, projIndex) => (
@@ -158,11 +153,16 @@ export function ClassicResume({ resume, boldState, onWordClick }: ClassicResumeP
         </section>
       )}
 
-      {/* Skills */}
-      {skills.length > 0 && (
-        <section className="mt-5">
-          <h2 className="text-[14px] font-bold uppercase tracking-[0.04em]">Skills</h2>
-          <p className="mt-2 text-[13px] leading-6">{skills.join(", ")}</p>
+      {/* Education */}
+      {(basics.school || basics.degree) && (
+        <section className="mt-5 border-b border-neutral-400 pb-2">
+          <h2 className="text-[14px] font-bold uppercase tracking-[0.04em]">Education</h2>
+          <div className="mt-2 flex items-start justify-between gap-4">
+            <div>
+              {educationLeft && <p className="text-[13px] font-medium">{educationLeft}</p>}
+            </div>
+            {educationRight && <p className="text-[13px] text-neutral-700">{educationRight}</p>}
+          </div>
         </section>
       )}
 
