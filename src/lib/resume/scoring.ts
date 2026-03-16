@@ -1,3 +1,4 @@
+import { getBulletText } from "@/lib/resume/editorHelpers";
 import type {
   GeneratedResume,
   KeywordAnalysis,
@@ -11,14 +12,6 @@ function clamp(value: number, min: number, max: number): number {
 
 function hasNumbers(text: string): boolean {
   return /\d/.test(text);
-}
-
-function getBulletText(bullet: string | ResumeBullet): string {
-  if (typeof bullet === "string") return bullet;
-
-  return [bullet.polished, bullet.expanded, ...(bullet.impactTags ?? [])]
-    .filter(Boolean)
-    .join(" ");
 }
 
 function getAllBulletText(resume: GeneratedResume): string[] {

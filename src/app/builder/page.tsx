@@ -9,6 +9,8 @@ import {
   saveGeneratedResume,
   saveResumeFormData,
 } from "@/lib/resume/storage";
+import { Input } from "@/components/form/Input";
+import { TextArea } from "@/components/form/TextArea";
 import type {
   ExperienceEntry,
   ProjectEntry,
@@ -85,42 +87,25 @@ function normalizeGeneratedResume(raw: any, formData: ResumeFormData) {
         : `Early-career candidate pursuing ${
             formData.basics.degree || "a degree"
           } and targeting ${formData.target.role || "new opportunities"}.`,
-    experiences:
+    experience:
       experienceSource.length > 0
         ? experienceSource.map((exp: any) => ({
             role: exp?.role ?? "",
             organization: exp?.organization ?? exp?.company ?? "",
-            details:
-              typeof exp?.details === "string" ? exp.details : "",
             bullets: Array.isArray(exp?.bullets)
               ? exp.bullets.map(bulletToText).filter(Boolean)
-              : typeof exp?.details === "string"
-                ? splitLines(exp.details)
-                : [],
+              : [],
           }))
-        : formData.experiences.map((exp) => ({
-            role: exp.role,
-            organization: exp.organization,
-            details: exp.details,
-            bullets: splitLines(exp.details),
-          })),
+        : [],
     projects:
       projectSource.length > 0
         ? projectSource.map((project: any) => ({
             name: project?.name ?? "",
-            details:
-              typeof project?.details === "string" ? project.details : "",
             bullets: Array.isArray(project?.bullets)
               ? project.bullets.map(bulletToText).filter(Boolean)
-              : typeof project?.details === "string"
-                ? splitLines(project.details)
-                : [],
+              : [],
           }))
-        : formData.projects.map((project) => ({
-            name: project.name,
-            details: project.details,
-            bullets: splitLines(project.details),
-          })),
+        : [],
     skills: Array.isArray(source?.skills)
       ? source.skills.map(String).filter(Boolean)
       : typeof source?.skills === "string"
@@ -128,10 +113,7 @@ function normalizeGeneratedResume(raw: any, formData: ResumeFormData) {
             .split(",")
             .map((item: string) => item.trim())
             .filter(Boolean)
-        : formData.skills
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean),
+        : [],
     extras: Array.isArray(source?.extras)
       ? source.extras.map(String).filter(Boolean)
       : typeof source?.extras === "string"
@@ -139,10 +121,7 @@ function normalizeGeneratedResume(raw: any, formData: ResumeFormData) {
             .split("\n")
             .map((item: string) => item.trim())
             .filter(Boolean)
-        : formData.extras
-            .split("\n")
-            .map((item) => item.trim())
-            .filter(Boolean),
+        : [],
   };
 }
 
@@ -435,60 +414,5 @@ export default function BuilderPage() {
         </form>
       </div>
     </main>
-  );
-}
-
-type InputProps = {
-  label: string;
-  value?: string;
-  placeholder?: string;
-  onChange?: (value: string) => void;
-};
-
-function Input({ label, value, placeholder, onChange }: InputProps) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium text-slate-200">
-        {label}
-      </span>
-      <input
-        type="text"
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange?.(e.target.value)}
-        className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-white/30"
-      />
-    </label>
-  );
-}
-
-type TextAreaProps = {
-  label: string;
-  rows?: number;
-  value?: string;
-  placeholder?: string;
-  onChange?: (value: string) => void;
-};
-
-function TextArea({
-  label,
-  rows = 5,
-  value,
-  placeholder,
-  onChange,
-}: TextAreaProps) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium text-slate-200">
-        {label}
-      </span>
-      <textarea
-        rows={rows}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange?.(e.target.value)}
-        className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-white/30"
-      />
-    </label>
   );
 }

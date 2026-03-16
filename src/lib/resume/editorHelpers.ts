@@ -6,10 +6,10 @@ import type { ResumeBullet } from "@/types/resume";
  */
 export function getBulletText(bullet: any): string {
   if (typeof bullet === "string") return bullet;
-  if (bullet && typeof bullet === "object") {
-    return bullet.polished || bullet.expanded || bullet.originalInput || "";
-  }
-  return "";
+  
+  if (!bullet || typeof bullet !== "object") return "";
+  
+  return bullet.polished || bullet.expanded || bullet.originalInput || "";
 }
 
 /**

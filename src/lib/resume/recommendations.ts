@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { getBulletText } from "@/lib/resume/editorHelpers";
 import type {
   GeneratedResume,
   KeywordAnalysis,
@@ -16,22 +17,6 @@ type RecommendationItem = {
   missingKeywords: string[];
   category: "project" | "certification" | "resume" | "coursework";
 };
-
-function getBulletText(bullet: any): string {
-  if (typeof bullet === "string") return bullet;
-
-  if (!bullet || typeof bullet !== "object") return "";
-
-  return [
-    bullet.originalInput,
-    bullet.polished,
-    bullet.expanded,
-    ...(Array.isArray(bullet.impactTags) ? bullet.impactTags : []),
-    ...(Array.isArray(bullet.matchedKeywords) ? bullet.matchedKeywords : []),
-  ]
-    .filter(Boolean)
-    .join(" ");
-}
 
 function normalizeExperienceArray(resume: GeneratedResume): any[] {
   const maybeResume = resume as any;
