@@ -16,12 +16,14 @@ export function buildResumePrompt(formData: ResumeFormData) {
     index: index + 1,
     role: safeString(exp.role),
     organization: safeString(exp.organization),
+    date: safeString(exp?.date),
     details: safeString(exp.details),
   }));
 
   const projects = formData.projects.map((project, index) => ({
     index: index + 1,
     name: safeString(project.name),
+    link: safeString(project?.link),
     details: safeString(project.details),
   }));
 
@@ -65,9 +67,11 @@ Rules:
    - matchedKeywords = job-description keywords only if clearly and truthfully supported by input
 12. Return valid JSON only matching the schema exactly.
 13. Preserve the user's basics and target fields exactly unless a field is blank.
-14. Skills should be normalized into clean, distinct resume-ready skill strings.
-15. Extras should be concise, useful, and resume-appropriate.
-16. Bias toward LONGER bullets with MORE impact over SHORT bullets—grad recruiters read carefully and value substance.
+14. For experience entries: If the user provided a date, preserve it exactly as given. Do NOT invent dates.
+15. For project entries: If the user provided a link, preserve it exactly as given. Do NOT invent or validate links.
+16. Skills should be normalized into clean, distinct resume-ready skill strings.
+17. Extras should be concise, useful, and resume-appropriate.
+18. Bias toward LONGER bullets with MORE impact over SHORT bullets—grad recruiters read carefully and value substance.
 `;
 
   const user = `

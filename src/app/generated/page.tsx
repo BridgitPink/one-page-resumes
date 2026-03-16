@@ -675,30 +675,49 @@ export default function GeneratedPage() {
 
                   return (
                     <div key={sectionKey}>
-                      <EditableField
-                        value={item.role || ""}
-                        onChange={(value) => {
-                          const updated = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
-                          if (updated.experience?.[expIndex]) {
-                            updated.experience[expIndex].role = value;
-                            updateResume(updated);
-                          }
-                        }}
-                        className="text-black text-[14px] font-bold"
-                        placeholder="Job title"
-                      />
-                      <EditableField
-                        value={item.organization || ""}
-                        onChange={(value) => {
-                          const updated = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
-                          if (updated.experience?.[expIndex]) {
-                            updated.experience[expIndex].organization = value;
-                            updateResume(updated);
-                          }
-                        }}
-                        className="text-black text-[13px] italic text-neutral-800"
-                        placeholder="Company name"
-                      />
+                      {/* Left: Role + Organization, Right: Date */}
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <EditableField
+                            value={item.role || ""}
+                            onChange={(value) => {
+                              const updated = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
+                              if (updated.experience?.[expIndex]) {
+                                updated.experience[expIndex].role = value;
+                                updateResume(updated);
+                              }
+                            }}
+                            className="text-black text-[14px] font-bold"
+                            placeholder="Job title"
+                          />
+                          <EditableField
+                            value={item.organization || ""}
+                            onChange={(value) => {
+                              const updated = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
+                              if (updated.experience?.[expIndex]) {
+                                updated.experience[expIndex].organization = value;
+                                updateResume(updated);
+                              }
+                            }}
+                            className="text-black text-[13px] italic text-neutral-800"
+                            placeholder="Company name"
+                          />
+                        </div>
+                        <div className="flex-shrink-0 text-right">
+                          <EditableField
+                            value={item.date || ""}
+                            onChange={(value) => {
+                              const updated = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
+                              if (updated.experience?.[expIndex]) {
+                                updated.experience[expIndex].date = value;
+                                updateResume(updated);
+                              }
+                            }}
+                            className="text-black text-[13px] text-neutral-700"
+                            placeholder="Date"
+                          />
+                        </div>
+                      </div>
 
                       {item.bullets?.length ? (
                         <ul className="mt-2 list-none space-y-1 pl-0 text-[13px] leading-6">
@@ -804,6 +823,20 @@ export default function GeneratedPage() {
                         className="text-black text-[14px] font-bold"
                         placeholder="Project name"
                       />
+                      {project.link && (
+                        <EditableField
+                          value={project.link || ""}
+                          onChange={(value) => {
+                            const updated = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
+                            if (updated.projects?.[projIndex]) {
+                              updated.projects[projIndex].link = value;
+                              updateResume(updated);
+                            }
+                          }}
+                          className="text-black text-[13px] text-neutral-700"
+                          placeholder="Project URL"
+                        />
+                      )}
 
                       {project.bullets?.length ? (
                         <ul className="mt-2 list-none space-y-1 pl-0 text-[13px] leading-6">

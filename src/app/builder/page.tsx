@@ -21,11 +21,13 @@ const emptyExperience = (): ExperienceEntry => ({
   role: "",
   organization: "",
   details: "",
+  date: "",
 });
 
 const emptyProject = (): ProjectEntry => ({
   name: "",
   details: "",
+  link: "",
 });
 
 function splitLines(value: string): string[] {
@@ -92,6 +94,7 @@ function normalizeGeneratedResume(raw: any, formData: ResumeFormData) {
         ? experienceSource.map((exp: any) => ({
             role: exp?.role ?? "",
             organization: exp?.organization ?? exp?.company ?? "",
+            date: exp?.date ?? "",
             bullets: Array.isArray(exp?.bullets)
               ? exp.bullets.map(bulletToText).filter(Boolean)
               : [],
@@ -101,6 +104,7 @@ function normalizeGeneratedResume(raw: any, formData: ResumeFormData) {
       projectSource.length > 0
         ? projectSource.map((project: any) => ({
             name: project?.name ?? "",
+            link: project?.link ?? "",
             bullets: Array.isArray(project?.bullets)
               ? project.bullets.map(bulletToText).filter(Boolean)
               : [],
@@ -243,12 +247,15 @@ export default function BuilderPage() {
       saveGeneratedResume(normalizedResume);
       router.push("/generated");
     } catch (err) {
-      console.error(err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong while generating the resume."
-      );
+      console.error("Generation error:", err);
+      let userMessage = "Something went wrong while generating the resume.";
+      if (err instanceof Error) {
+        userMessage = err.message;
+      }
+      if (err instanceof SyntaxError) {
+        userMessage = "Invalid response from server. Check server logs.";
+      }
+      setError(userMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -321,6 +328,14 @@ export default function BuilderPage() {
                     />
                   </div>
                   <div className="mt-4">
+                    <Input
+                      label="Date"
+                      value={experience.date}
+                      placeholder="Jan 2024 – Present"
+                      onChange={(v) => updateExperience(index, "date", v)}
+                    />
+                  </div>
+                  <div className="mt-4">
                     <TextArea
                       label="What did you do?"
                       rows={6}
@@ -350,6 +365,14 @@ export default function BuilderPage() {
                     value={project.name}
                     onChange={(v) => updateProject(index, "name", v)}
                   />
+                  <div className="mt-4">
+                    <Input
+                      label="Link"
+                      placeholder="https://github.com/..."
+                      value={project.link}
+                      onChange={(v) => updateProject(index, "link", v)}
+                    />
+                  </div>
                   <div className="mt-4">
                     <TextArea
                       label="Describe the project"

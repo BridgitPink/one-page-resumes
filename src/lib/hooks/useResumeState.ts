@@ -15,6 +15,7 @@ export function useResumeState(
     updatedResume.experience.push({
       role: "",
       organization: "",
+      date: "",
       bullets: [],
     });
     updateResume(updatedResume);
@@ -35,6 +36,7 @@ export function useResumeState(
     const updatedResume = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
     updatedResume.projects.push({
       name: "",
+      link: "",
       bullets: [],
     });
     updateResume(updatedResume);

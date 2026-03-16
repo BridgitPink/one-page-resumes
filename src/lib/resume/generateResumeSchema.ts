@@ -54,6 +54,7 @@ export const generatedResumeSchema = {
           properties: {
             role: { type: "string" },
             organization: { type: "string" },
+            date: { type: "string" },
             bullets: {
               type: "array",
               items: {
@@ -82,7 +83,7 @@ export const generatedResumeSchema = {
               },
             },
           },
-          required: ["role", "organization", "bullets"],
+          required: ["role", "organization", "date", "bullets"],
         },
       },
       projects: {
@@ -92,6 +93,7 @@ export const generatedResumeSchema = {
           additionalProperties: false,
           properties: {
             name: { type: "string" },
+            link: { type: "string" },
             bullets: {
               type: "array",
               items: {
@@ -120,7 +122,7 @@ export const generatedResumeSchema = {
               },
             },
           },
-          required: ["name", "bullets"],
+          required: ["name", "link", "bullets"],
         },
       },
       skills: {

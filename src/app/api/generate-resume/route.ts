@@ -34,10 +34,19 @@ export async function POST(req: Request) {
 
     return NextResponse.json(payload);
   } catch (error) {
-    console.error("generate-resume route error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("generate-resume route error:", errorMessage);
+    console.error("Full error:", error);
+    if (error instanceof Error) {
+      console.error("Stack:", error.stack);
+    }
 
     return NextResponse.json(
-      { error: "Failed to generate resume." },
+      {
+        error: "Failed to generate resume.",
+        details: errorMessage,
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+      },
       { status: 500 }
     );
   }

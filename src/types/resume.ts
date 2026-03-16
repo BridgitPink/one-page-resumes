@@ -2,11 +2,13 @@ export type ExperienceEntry = {
   role: string;
   organization: string;
   details: string;
+  date?: string;
 };
 
 export type ProjectEntry = {
   name: string;
   details: string;
+  link?: string;
 };
 
 export type ResumeFormData = {
@@ -48,10 +50,12 @@ export type GeneratedResume = {
   experience: Array<{
     role: string;
     organization: string;
+    date?: string;
     bullets: ResumeBullet[];
   }>;
   projects: Array<{
     name: string;
+    link?: string;
     bullets: ResumeBullet[];
   }>;
   skills: string[];

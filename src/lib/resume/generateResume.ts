@@ -36,36 +36,56 @@ export async function generateResume(
 
   const { system, user } = buildResumePrompt(formData);
 
-  const response = await client.responses.create({
-    model: "gpt-5.4",
-    text: {
-      format: {
-        type: "json_schema",
-        ...generatedResumeSchema,
-      },
-    },
-    input: [
-      {
-        role: "system",
-        content: [{ type: "input_text", text: system }],
-      },
-      {
-        role: "user",
-        content: [{ type: "input_text", text: user }],
-      },
-    ],
-  });
-
-  const rawJson = extractTextOutput(response);
-
-  if (!rawJson) {
-    throw new Error("The model returned an empty response.");
-  }
-
+  console.log("Starting resume generation with model: gpt-5.4");
+  
   try {
-    return JSON.parse(rawJson) as GeneratedResume;
-  } catch (error) {
-    console.error("Failed to parse generated resume JSON:", rawJson, error);
-    throw new Error("Failed to parse structured resume response.");
+    const response = await client.responses.create({
+      model: "gpt-5.4",
+      text: {
+        format: {
+          type: "json_schema",
+          ...generatedResumeSchema,
+        },
+      },
+      input: [
+        {
+          role: "system",
+          content: [{ type: "input_text", text: system }],
+        },
+        {
+          role: "user",
+          content: [{ type: "input_text", text: user }],
+        },
+      ],
+    });
+
+    console.log("API response received, extracting text...");
+    const rawJson = extractTextOutput(response);
+
+    if (!rawJson) {
+      throw new Error("The model returned an empty response.");
+    }
+
+    console.log("Raw JSON from model (first 500 chars):", rawJson.substring(0, 500));
+
+    try {
+      const parsed = JSON.parse(rawJson) as GeneratedResume;
+      console.log("Successfully parsed resume JSON");
+      return parsed;
+    } catch (parseError) {
+      console.error("Failed to parse generated resume JSON");
+      console.error("Full response:", rawJson);
+      console.error("Parse error:", parseError);
+      throw new Error(
+        `Failed to parse structured resume response: ${parseError instanceof Error ? parseError.message : String(parseError)}`
+      );
+    }
+  } catch (apiError) {
+    console.error("OpenAI API error:", apiError);
+    if (apiError instanceof Error) {
+      console.error("Error message:", apiError.message);
+      console.error("Error stack:", apiError.stack);
+    }
+    throw apiError;
   }
 }
