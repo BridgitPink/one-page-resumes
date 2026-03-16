@@ -32,12 +32,15 @@ export async function POST(req: Request) {
     }
 
     const generatedResume = await generateResume(body);
+
     const keywordAnalysis = analyzeKeywordMatch(
       body.target.jobDescription,
       generatedResume
     );
+
     const resumeScore = scoreResume(generatedResume, keywordAnalysis);
-    const recommendations = generateRecommendations(
+
+    const recommendations = await generateRecommendations(
       generatedResume,
       keywordAnalysis,
       resumeScore

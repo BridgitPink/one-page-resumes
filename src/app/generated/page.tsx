@@ -1,387 +1,163 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import type {
-  AnalyzeResumeResponse,
-  GeneratedResume,
-  KeywordAnalysis,
-} from "@/types/resume";
-import {
-  generatedResumeToStorage,
-  parseResumeFormDataFromStorage,
-} from "@/lib/resume/normalizeGeneratedResume";
-import { toDisplayResume } from "@/lib/resume/toDisplayResume";
-import { renderHighlightedText } from "@/lib/resume/highlightKeywords";
-import { analyzeRecruiterSignals } from "@/lib/resume/recruiterSignals";
-
-const RESUME_FORM_STORAGE_KEY = "resumeFormData";
-const GENERATED_RESUME_STORAGE_KEY = "generatedResume";
-const RESUME_ANALYSIS_STORAGE_KEY = "resumeAnalysis";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { loadGeneratedResume } from "@/lib/resume/storage";
 
 export default function GeneratedPage() {
-  const [generated, setGenerated] = useState<GeneratedResume | null>(null);
-  const [keywordAnalysis, setKeywordAnalysis] =
-    useState<KeywordAnalysis | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const [resume, setResume] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const raw = localStorage.getItem(RESUME_FORM_STORAGE_KEY);
-
-    if (!raw) {
-      setIsLoading(false);
-      return;
-    }
-
-    const parsed = parseResumeFormDataFromStorage(raw);
-
-    if (!parsed) {
-      setError("Stored resume form data is invalid.");
-      setIsLoading(false);
-      return;
-    }
-
-    const run = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const response = await fetch("/api/analyze-resume", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(parsed),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to generate resume.");
-        }
-
-        const result: AnalyzeResumeResponse = await response.json();
-
-        setGenerated(result.generated);
-        setKeywordAnalysis(result.keywordAnalysis);
-
-        localStorage.setItem(
-          GENERATED_RESUME_STORAGE_KEY,
-          generatedResumeToStorage(result.generated)
-        );
-        localStorage.setItem(RESUME_ANALYSIS_STORAGE_KEY, JSON.stringify(result));
-      } catch (err) {
-        console.error(err);
-        setError("Could not generate the resume.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void run();
+    const stored = loadGeneratedResume();
+    setResume(stored);
+    setLoading(false);
   }, []);
 
-  if (isLoading) {
-    return (
-      <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8">
-          <h1 className="text-3xl font-bold">Generating resume...</h1>
-          <p className="mt-4 text-slate-300">
-            Building your resume and matching it against the job description.
-          </p>
-        </div>
-      </main>
-    );
+  if (loading) {
+    return <div className="mx-auto max-w-5xl px-6 py-10">Loading resume...</div>;
   }
 
-  if (error || !generated || !keywordAnalysis) {
+  if (!resume) {
     return (
-      <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8">
-          <h1 className="text-3xl font-bold">Generation unavailable</h1>
-          <p className="mt-4 text-slate-300">
-            {error || "No generated resume available."}
-          </p>
-          <div className="mt-6 flex gap-3">
-            <Link
-              href="/builder"
-              className="inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950"
-            >
-              Back to Builder
-            </Link>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="inline-flex rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </main>
+      <div className="mx-auto max-w-3xl px-6 py-12">
+        <h1 className="text-2xl font-semibold text-slate-900">No generated resume found</h1>
+        <button
+          onClick={() => router.push("/builder")}
+          className="mt-6 rounded-lg bg-slate-900 px-4 py-2 text-white"
+        >
+          Back to Builder
+        </button>
+      </div>
     );
   }
-
-  const displayResume = toDisplayResume(generated);
-  const matchedKeywords = keywordAnalysis.matchedKeywords;
-
-  const recruiterSignals = useMemo(() => {
-    const resumeText = [
-      displayResume.summary,
-      ...displayResume.experience.flatMap((item) => [
-        item.role,
-        item.organization,
-        ...item.bullets,
-      ]),
-      ...displayResume.projects.flatMap((item) => [item.name, ...item.bullets]),
-      ...displayResume.skills,
-      ...displayResume.extras,
-      displayResume.target.role,
-      displayResume.target.industry,
-    ];
-
-    return analyzeRecruiterSignals(resumeText);
-  }, [displayResume]);
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-16 text-white">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <div>
-            <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-slate-300">
-              Generated Resume
-            </span>
-            <h1 className="mt-4 text-4xl font-bold">Your Resume Draft</h1>
-            <p className="mt-3 max-w-2xl text-slate-300">
-              Review the generated resume first. Matched job-description terms
-              are highlighted below.
-            </p>
-          </div>
-
-          <div className="flex gap-3">
-            <Link
-              href="/builder"
-              className="inline-flex rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5"
-            >
-              Back to Builder
-            </Link>
-            <Link
-              href="/analyze"
-              className="inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950"
-            >
-              Continue to Analyze
-            </Link>
-          </div>
+    <main className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-semibold text-slate-900">Generated Resume</h1>
+          <p className="mt-2 text-slate-600">
+            Review your resume first. Keep this page focused and clean.
+          </p>
         </div>
 
-        <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <SignalCard
-            title="Matched Keywords"
-            items={matchedKeywords}
-            emptyText="No matched keywords yet."
-            chipClassName="bg-emerald-100 text-emerald-800"
-          />
-          <SignalCard
-            title="Tools Recruiters Will Notice"
-            items={recruiterSignals.tools}
-            emptyText="No clear tool signals detected yet."
-            chipClassName="bg-sky-100 text-sky-800"
-          />
-          <SignalCard
-            title="Metrics and Numbers"
-            items={recruiterSignals.metrics}
-            emptyText="No metrics detected yet."
-            chipClassName="bg-amber-100 text-amber-800"
-          />
-          <SignalCard
-            title="Strong Action Verbs"
-            items={recruiterSignals.actionVerbs}
-            emptyText="No strong action verbs detected yet."
-            chipClassName="bg-violet-100 text-violet-800"
-          />
-        </section>
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <span className="font-semibold">Tip:</span> Review bullet wording, remove anything
+          inaccurate, and then continue to analysis.
+        </div>
 
-        <section className="rounded-3xl border border-white/10 bg-white p-10 text-slate-900 shadow-2xl shadow-black/30">
+        <section className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
           <header className="border-b border-slate-200 pb-6">
-            <h1 className="text-3xl font-bold">
-              {displayResume.basics.fullName || "Your Name"}
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              {[
-                displayResume.basics.email,
-                displayResume.basics.phone,
-                displayResume.basics.location,
-                displayResume.basics.linkedin,
-                displayResume.basics.github,
-              ]
-                .filter(Boolean)
-                .join(" • ")}
-            </p>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900">
+              {resume?.basics?.fullName || "Your Name"}
+            </h2>
+            <div className="mt-2 text-sm text-slate-600">
+              {resume?.basics?.email || ""}
+              {resume?.basics?.phone ? ` • ${resume.basics.phone}` : ""}
+              {resume?.basics?.location ? ` • ${resume.basics.location}` : ""}
+              {resume?.basics?.linkedin ? ` • ${resume.basics.linkedin}` : ""}
+              {resume?.basics?.github ? ` • ${resume.basics.github}` : ""}
+            </div>
           </header>
 
-          <ResumeSection title="Professional Summary">
-            <p className="text-sm leading-6 text-slate-700">
-              {renderHighlightedText(displayResume.summary, matchedKeywords)}
-            </p>
-          </ResumeSection>
+          {resume?.summary && (
+            <section className="mt-6">
+              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Summary
+              </h3>
+              <p className="text-sm leading-6 text-slate-800">{resume.summary}</p>
+            </section>
+          )}
 
-          <ResumeSection title="Education">
-            <p className="font-semibold">
-              {displayResume.basics.school || "School Name"}
-            </p>
-            <p className="mt-1">
-              {displayResume.basics.degree || "Degree / Major"}
-            </p>
-            <p className="mt-1 text-sm text-slate-600">
-              {[
-                displayResume.basics.graduationDate &&
-                  `Graduation: ${displayResume.basics.graduationDate}`,
-                displayResume.basics.gpa && `GPA: ${displayResume.basics.gpa}`,
-              ]
-                .filter(Boolean)
-                .join(" • ")}
-            </p>
-          </ResumeSection>
+          {(resume?.basics?.school ||
+            resume?.basics?.degree ||
+            resume?.basics?.graduationDate ||
+            resume?.basics?.gpa) && (
+            <section className="mt-8">
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Education
+              </h3>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-semibold text-slate-900">{resume?.basics?.school}</p>
+                  <p className="text-sm text-slate-700">
+                    {resume?.basics?.degree || ""}
+                    {resume?.basics?.gpa
+                      ? `${resume?.basics?.degree ? " • " : ""}GPA: ${resume.basics.gpa}`
+                      : ""}
+                  </p>
+                </div>
+                <p className="text-sm text-slate-500">
+                  {resume?.basics?.graduationDate || ""}
+                </p>
+              </div>
+            </section>
+          )}
 
-          <ResumeSection title="Experience">
-            {displayResume.experience.length > 0 ? (
-              <div className="space-y-5">
-                {displayResume.experience.map((experience, index) => (
-                  <div key={`${experience.role}-${index}`}>
-                    <div className="flex flex-col justify-between gap-1 sm:flex-row">
-                      <h3 className="font-semibold">{experience.role}</h3>
-                      <p className="text-sm text-slate-600">
-                        {experience.organization}
-                      </p>
-                    </div>
-                    <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
-                      {experience.bullets.map((bullet, bulletIndex) => (
-                        <li key={`${experience.role}-${bulletIndex}`}>
-                          {renderHighlightedText(bullet, matchedKeywords)}
-                        </li>
+          {Array.isArray(resume?.experiences) && resume.experiences.length > 0 && (
+            <section className="mt-8">
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Experience
+              </h3>
+              <div className="space-y-8">
+                {resume.experiences.map((exp: any, index: number) => (
+                  <div key={index}>
+                    <p className="font-semibold text-slate-900">{exp?.role}</p>
+                    <p className="text-sm text-slate-700">{exp?.organization}</p>
+                    <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-800">
+                      {(exp?.bullets ?? []).map((bullet: string, i: number) => (
+                        <li key={i}>{bullet}</li>
                       ))}
                     </ul>
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-sm text-slate-600">No experience added yet.</p>
-            )}
-          </ResumeSection>
+            </section>
+          )}
 
-          <ResumeSection title="Projects">
-            {displayResume.projects.length > 0 ? (
-              <div className="space-y-5">
-                {displayResume.projects.map((project, index) => (
-                  <div key={`${project.name}-${index}`}>
-                    <h3 className="font-semibold">{project.name}</h3>
-                    <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
-                      {project.bullets.map((bullet, bulletIndex) => (
-                        <li key={`${project.name}-${bulletIndex}`}>
-                          {renderHighlightedText(bullet, matchedKeywords)}
-                        </li>
+          {Array.isArray(resume?.projects) && resume.projects.length > 0 && (
+            <section className="mt-8">
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Projects
+              </h3>
+              <div className="space-y-8">
+                {resume.projects.map((project: any, index: number) => (
+                  <div key={index}>
+                    <p className="font-semibold text-slate-900">{project?.name}</p>
+                    <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-800">
+                      {(project?.bullets ?? []).map((bullet: string, i: number) => (
+                        <li key={i}>{bullet}</li>
                       ))}
                     </ul>
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-sm text-slate-600">No projects added yet.</p>
-            )}
-          </ResumeSection>
+            </section>
+          )}
 
-          <ResumeSection title="Skills">
-            {displayResume.skills.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {displayResume.skills.map((skill) => {
-                  const matched = matchedKeywords.some(
-                    (keyword) => keyword.toLowerCase() === skill.toLowerCase()
-                  );
-
-                  return (
-                    <span
-                      key={skill}
-                      className={`rounded-full px-3 py-1 text-sm ${
-                        matched
-                          ? "bg-emerald-100 font-semibold text-emerald-800"
-                          : "bg-slate-100 text-slate-700"
-                      }`}
-                    >
-                      {skill}
-                    </span>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-600">No skills added yet.</p>
-            )}
-          </ResumeSection>
-
-          <ResumeSection title="Additional Information">
-            {displayResume.extras.length > 0 ? (
-              <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
-                {displayResume.extras.map((item, index) => (
-                  <li key={`${item}-${index}`}>
-                    {renderHighlightedText(item, matchedKeywords)}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-slate-600">
-                No additional information added yet.
+          {Array.isArray(resume?.skills) && resume.skills.length > 0 && (
+            <section className="mt-8">
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Skills
+              </h3>
+              <p className="text-sm leading-6 text-slate-800">
+                {resume.skills.join(" • ")}
               </p>
-            )}
-          </ResumeSection>
+            </section>
+          )}
         </section>
+
+        <div className="mt-8 flex justify-end">
+          <button
+            onClick={() => router.push("/analyze")}
+            className="rounded-lg bg-slate-900 px-6 py-3 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Continue to Analysis
+          </button>
+        </div>
       </div>
     </main>
-  );
-}
-
-function ResumeSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="mt-8">
-      <h2 className="border-b border-slate-200 pb-2 text-sm font-bold uppercase tracking-[0.2em] text-slate-500">
-        {title}
-      </h2>
-      <div className="mt-4">{children}</div>
-    </section>
-  );
-}
-
-function SignalCard({
-  title,
-  items,
-  emptyText,
-  chipClassName,
-}: {
-  title: string;
-  items: string[];
-  emptyText: string;
-  chipClassName: string;
-}) {
-  return (
-    <section className="rounded-3xl border border-white/10 bg-white/5 p-5">
-      <h2 className="text-base font-semibold text-white">{title}</h2>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {items.length > 0 ? (
-          items.map((item) => (
-            <span
-              key={item}
-              className={`rounded-full px-3 py-1 text-sm font-medium ${chipClassName}`}
-            >
-              {item}
-            </span>
-          ))
-        ) : (
-          <p className="text-sm text-slate-400">{emptyText}</p>
-        )}
-      </div>
-    </section>
   );
 }

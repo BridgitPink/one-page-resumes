@@ -1,249 +1,247 @@
+import OpenAI from "openai";
 import type {
   GeneratedResume,
   KeywordAnalysis,
-  ResumeBullet,
-  ResumeRecommendations,
   ResumeScore,
 } from "@/types/resume";
 
-function includesAny(text: string, terms: string[]): boolean {
-  const lower = text.toLowerCase();
-  return terms.some((term) => lower.includes(term.toLowerCase()));
-}
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-function getBulletText(bullet: string | ResumeBullet): string {
+type RecommendationItem = {
+  text: string;
+  rationale: string;
+  confidence: "high" | "medium" | "low";
+  missingKeywords: string[];
+  category: "project" | "certification" | "resume" | "coursework";
+};
+
+function getBulletText(bullet: any): string {
   if (typeof bullet === "string") return bullet;
 
+  if (!bullet || typeof bullet !== "object") return "";
+
   return [
+    bullet.originalInput,
     bullet.polished,
     bullet.expanded,
-    ...(bullet.impactTags ?? []),
-    ...(bullet.matchedKeywords ?? []),
+    ...(Array.isArray(bullet.impactTags) ? bullet.impactTags : []),
+    ...(Array.isArray(bullet.matchedKeywords) ? bullet.matchedKeywords : []),
   ]
     .filter(Boolean)
     .join(" ");
 }
 
-function buildRecommendationCorpus(
-  resume: GeneratedResume,
-  keywordAnalysis: KeywordAnalysis
-): string {
-  const experienceText = resume.experience.flatMap((item) => [
-    item.role,
-    item.organization,
-    ...item.bullets.map(getBulletText),
-  ]);
+function normalizeExperienceArray(resume: GeneratedResume): any[] {
+  const maybeResume = resume as any;
 
-  const projectText = resume.projects.flatMap((item) => [
-    item.name,
-    ...item.bullets.map(getBulletText),
-  ]);
+  if (Array.isArray(maybeResume.experiences)) return maybeResume.experiences;
+  if (Array.isArray(maybeResume.experience)) return maybeResume.experience;
 
-  return [
-    resume.target.role,
-    resume.target.industry,
-    resume.target.jobDescription,
-    resume.summary,
-    ...experienceText,
-    ...projectText,
-    ...resume.skills,
-    ...resume.extras,
-    ...keywordAnalysis.extractedKeywords,
-    ...keywordAnalysis.matchedKeywords,
-    ...keywordAnalysis.missingKeywords,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
+  return [];
 }
 
-export function generateRecommendations(
+function buildResumeContext(
   resume: GeneratedResume,
   keywordAnalysis: KeywordAnalysis,
   score: ResumeScore
-): ResumeRecommendations {
-  const combinedText = buildRecommendationCorpus(resume, keywordAnalysis);
+) {
+  const experiences = normalizeExperienceArray(resume).map((item: any) => ({
+    role: item?.role ?? "",
+    organization: item?.organization ?? item?.company ?? "",
+    bullets: Array.isArray(item?.bullets)
+      ? item.bullets.map(getBulletText).filter(Boolean)
+      : [],
+  }));
 
-  const recommendedProjects: string[] = [];
-  const recommendedCertifications: string[] = [];
-  const recommendedCourseworkFraming: string[] = [];
-  const recommendedSectionAdditions: string[] = [];
-
-  const hasProjects = resume.projects.length > 0;
-  const hasExtras = resume.extras.length > 0;
-
-  if (
-    includesAny(combinedText, [
-      "software",
-      "developer",
-      "engineering",
-      "web",
-      "frontend",
-      "backend",
-      "full stack",
-      "react",
-      "javascript",
-      "typescript",
-      "api",
-      "next.js",
-      "node",
-    ])
-  ) {
-    recommendedProjects.push(
-      "Build a full-stack web app with authentication, CRUD features, and deployment to showcase practical software engineering ability."
-    );
-    recommendedProjects.push(
-      "Create an API-based project that consumes external data and presents it through a clean dashboard or interface."
-    );
-    recommendedCertifications.push(
-      "Responsive Web Design or a modern front-end certification to strengthen web development credibility."
-    );
-    recommendedCourseworkFraming.push(
-      "Frame coursework like Data Structures, Software Engineering, Databases, and Web Development as relevant technical preparation."
-    );
-  }
-
-  if (
-    includesAny(combinedText, [
-      "data",
-      "analytics",
-      "machine learning",
-      "deep learning",
-      "ai",
-      "python",
-      "sql",
-      "visualization",
-      "analysis",
-      "statistics",
-      "dashboard",
-    ])
-  ) {
-    recommendedProjects.push(
-      "Create a data analysis or machine learning project with a real dataset, clear visuals, and measurable insights."
-    );
-    recommendedProjects.push(
-      "Build a dashboard or notebook project that communicates trends, predictions, or decision-support insights."
-    );
-    recommendedCertifications.push(
-      "Google Data Analytics, Microsoft data-related certification, or an introductory machine learning credential."
-    );
-    recommendedCourseworkFraming.push(
-      "Highlight coursework such as Statistics, Data Structures, Machine Learning, Databases, Linear Algebra, or Data Visualization."
-    );
-  }
-
-  if (
-    includesAny(combinedText, [
-      "cyber",
-      "security",
-      "network",
-      "linux",
-      "systems",
-      "infrastructure",
-      "cloud",
-      "aws",
-      "azure",
-      "monitoring",
-      "devops",
-    ])
-  ) {
-    recommendedProjects.push(
-      "Build a systems or security project such as a log analysis tool, vulnerability scanner, or cloud monitoring dashboard."
-    );
-    recommendedCertifications.push(
-      "CompTIA Security+, AWS Cloud Practitioner, or Microsoft Azure Fundamentals."
-    );
-    recommendedCourseworkFraming.push(
-      "Frame coursework in Computer Networks, Operating Systems, Cybersecurity, Cloud Computing, or Systems Administration."
-    );
-  }
-
-  if (
-    includesAny(combinedText, [
-      "technical",
-      "support",
-      "help desk",
-      "it",
-      "troubleshoot",
-      "documentation",
-      "ticketing",
-    ])
-  ) {
-    recommendedProjects.push(
-      "Create an IT support knowledge-base, troubleshooting workflow app, or ticket-tracking simulation project."
-    );
-    recommendedCertifications.push(
-      "Google IT Support, CompTIA A+, or Microsoft fundamentals certification."
-    );
-    recommendedCourseworkFraming.push(
-      "Highlight coursework or labs related to networking, hardware, systems support, and technical communication."
-    );
-  }
-
-  if (!hasProjects) {
-    recommendedSectionAdditions.push(
-      "Add a Projects section. For early-career candidates, projects are often one of the fastest ways to strengthen a one-page resume."
-    );
-  }
-
-  if (!hasExtras) {
-    recommendedSectionAdditions.push(
-      "Add leadership, clubs, volunteer work, certifications, or relevant coursework to strengthen the lower half of the page."
-    );
-  }
-
-  if (resume.skills.length < 5) {
-    recommendedSectionAdditions.push(
-      "Expand the Skills section with languages, frameworks, tools, platforms, and role-relevant professional skills."
-    );
-  }
-
-  if (resume.experience.length === 0) {
-    recommendedSectionAdditions.push(
-      "Add campus work, freelance tasks, volunteer roles, tutoring, lab work, or leadership roles if formal experience is limited."
-    );
-  }
-
-  if (keywordAnalysis.missingKeywords.length >= 4) {
-    recommendedSectionAdditions.push(
-      "Consider building projects or earning certifications that naturally support the missing keywords in the job description."
-    );
-  }
-
-  if (score.overallScore < 70) {
-    recommendedSectionAdditions.push(
-      "Your current resume likely needs stronger proof of impact. Add results, technical depth, and more targeted content."
-    );
-  }
-
-  if (recommendedProjects.length === 0) {
-    recommendedProjects.push(
-      "Build one role-relevant portfolio project that solves a real problem and clearly demonstrates tools, process, and outcome."
-    );
-  }
-
-  if (recommendedCertifications.length === 0) {
-    recommendedCertifications.push(
-      "Consider one beginner-friendly certification aligned with your target role to help strengthen credibility."
-    );
-  }
-
-  if (recommendedCourseworkFraming.length === 0) {
-    recommendedCourseworkFraming.push(
-      "Include a Relevant Coursework line if you are still a student and need stronger role alignment."
-    );
-  }
+  const projects = Array.isArray(resume.projects)
+    ? resume.projects.map((item: any) => ({
+        name: item?.name ?? "",
+        bullets: Array.isArray(item?.bullets)
+          ? item.bullets.map(getBulletText).filter(Boolean)
+          : [],
+      }))
+    : [];
 
   return {
-    recommendedProjects: Array.from(new Set(recommendedProjects)).slice(0, 4),
-    recommendedCertifications: Array.from(
-      new Set(recommendedCertifications)
-    ).slice(0, 4),
-    recommendedCourseworkFraming: Array.from(
-      new Set(recommendedCourseworkFraming)
-    ).slice(0, 4),
-    recommendedSectionAdditions: Array.from(
-      new Set(recommendedSectionAdditions)
-    ).slice(0, 5),
+    targetRole: resume.target?.role ?? "",
+    targetIndustry: resume.target?.industry ?? "",
+    jobDescription: resume.target?.jobDescription ?? "",
+    summary: resume.summary ?? "",
+    experiences,
+    projects,
+    skills: Array.isArray(resume.skills) ? resume.skills : [],
+    extras: Array.isArray(resume.extras) ? resume.extras : [],
+    matchedKeywords: keywordAnalysis.matchedKeywords ?? [],
+    missingKeywords: keywordAnalysis.missingKeywords ?? [],
+    extractedKeywords: keywordAnalysis.extractedKeywords ?? [],
+    resumeScore:
+      (score as any)?.overallScore ??
+      (score as any)?.score ??
+      null,
   };
+}
+
+function fallbackRecommendations(
+  keywordAnalysis: KeywordAnalysis,
+  resume: GeneratedResume
+): RecommendationItem[] {
+  const missing = (keywordAnalysis.missingKeywords ?? []).slice(0, 6);
+  const targetRole = resume.target?.role || "target role";
+
+  return [
+    {
+      category: "project",
+      text: `Build a portfolio project that directly demonstrates ${missing.slice(0, 3).join(", ") || targetRole}.`,
+      rationale:
+        "A targeted project is one of the fastest ways to close skill gaps shown in the job description.",
+      confidence: "medium",
+      missingKeywords: missing,
+    },
+    {
+      category: "certification",
+      text: `Choose one certification that supports the missing skills most relevant to your ${targetRole} goal.`,
+      rationale:
+        "A relevant certification can strengthen credibility when experience is still developing.",
+      confidence: "medium",
+      missingKeywords: missing,
+    },
+    {
+      category: "resume",
+      text: "Revise bullets to more clearly show tools, outcomes, and role-relevant terminology from the job description.",
+      rationale:
+        "Improved wording helps recruiters see alignment faster and increases ATS relevance.",
+      confidence: "high",
+      missingKeywords: missing,
+    },
+  ];
+}
+
+export async function generateRecommendations(
+  resume: GeneratedResume,
+  keywordAnalysis: KeywordAnalysis,
+  score: ResumeScore
+): Promise<RecommendationItem[]> {
+  if (!process.env.OPENAI_API_KEY) {
+    return fallbackRecommendations(keywordAnalysis, resume);
+  }
+
+  const context = buildResumeContext(resume, keywordAnalysis, score);
+
+  try {
+    const response = await client.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-5-mini",
+      text: {
+        format: {
+          type: "json_schema",
+          name: "resume_recommendations",
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              recommendations: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    text: { type: "string" },
+                    rationale: { type: "string" },
+                    confidence: {
+                      type: "string",
+                      enum: ["high", "medium", "low"],
+                    },
+                    missingKeywords: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    category: {
+                      type: "string",
+                      enum: ["project", "certification", "resume", "coursework"],
+                    },
+                  },
+                  required: [
+                    "text",
+                    "rationale",
+                    "confidence",
+                    "missingKeywords",
+                    "category",
+                  ],
+                },
+              },
+            },
+            required: ["recommendations"],
+          },
+          strict: true,
+        },
+      },
+      input: [
+        {
+          role: "system",
+          content: [
+            {
+              type: "input_text",
+              text:
+                "You are a career recommendation engine. Generate structured, practical suggestions for improving a resume based on missing skills, job alignment gaps, and current resume content. Prefer highly specific project ideas and realistic certifications. Avoid generic filler. Make the suggestions broadly useful across industries, not only for computer science. Use the missing skills from analysis as the main signal. Prioritize: 1) role-relevant project ideas, 2) certifications, 3) resume improvements, 4) coursework framing when relevant.",
+            },
+          ],
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: JSON.stringify(
+                {
+                  instructions: {
+                    goal: "Generate 6 to 10 structured suggestions.",
+                    priorities: [
+                      "Use missing keywords as the strongest signal",
+                      "Give concrete project ideas when possible",
+                      "Recommend certifications only when they make sense",
+                      "Include resume improvement suggestions when alignment is weak",
+                      "Keep suggestions realistic for students and early-career candidates",
+                    ],
+                    orderingPreference: [
+                      "project",
+                      "certification",
+                      "resume",
+                      "coursework",
+                    ],
+                  },
+                  context,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        },
+      ],
+    });
+
+    const raw = response.output_text?.trim();
+
+    if (!raw) {
+      return fallbackRecommendations(keywordAnalysis, resume);
+    }
+
+    const parsed = JSON.parse(raw) as {
+      recommendations?: RecommendationItem[];
+    };
+
+    const recommendations = Array.isArray(parsed.recommendations)
+      ? parsed.recommendations
+      : [];
+
+    if (recommendations.length === 0) {
+      return fallbackRecommendations(keywordAnalysis, resume);
+    }
+
+    return recommendations.slice(0, 10);
+  } catch (error) {
+    console.error("generateRecommendations error:", error);
+    return fallbackRecommendations(keywordAnalysis, resume);
+  }
 }
