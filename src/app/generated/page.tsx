@@ -18,6 +18,33 @@ function getExperience(resume: any) {
   return [];
 }
 
+function getProjects(resume: any) {
+  if (!Array.isArray(resume?.projects)) return [];
+  return resume.projects;
+}
+
+function shouldShowSummary(resume: any): boolean {
+  if (!resume?.summary?.trim()) return false;
+
+  const experience = getExperience(resume);
+  const projects = getProjects(resume);
+
+  const experienceBullets = experience.reduce(
+    (sum: number, item: any) => sum + (item.bullets?.length ?? 0),
+    0
+  );
+  const projectBullets = projects.reduce(
+    (sum: number, item: any) => sum + (item.bullets?.length ?? 0),
+    0
+  );
+
+  const totalBullets = experienceBullets + projectBullets;
+
+  // Show summary only if there are fewer than 6 total bullets (experience + projects)
+  // This ensures the summary is included when content is sparse, helping fill the page
+  return totalBullets < 6;
+}
+
 function getSkills(resume: any): string[] {
   const skills = resume?.skills;
 
@@ -105,7 +132,7 @@ export default function GeneratedPage() {
             </div>
           </header>
 
-          {resume?.summary && (
+          {shouldShowSummary(resume) && (
             <section className="mt-6">
               <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
                 Summary

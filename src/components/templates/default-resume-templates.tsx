@@ -156,10 +156,11 @@ function shouldShowSummary(
     0
   );
 
-  const totalSections = experience.length + projects.length;
   const totalBullets = experienceBullets + projectBullets;
 
-  return totalSections <= 1 || totalBullets <= 3;
+  // Show summary only if there are fewer than 6 total bullets (experience + projects)
+  // This ensures the summary is included when content is sparse, helping fill the page
+  return totalBullets < 6;
 }
 
 function SkillRow({
