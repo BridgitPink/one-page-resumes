@@ -5,6 +5,8 @@ const KEYS = {
   generated: "generatedResume",
   analysis: "resumeAnalysis",
   suggested: "resumeSuggestedState",
+  boldWords: "resumeBoldWords",
+  selectedTemplate: "selectedTemplate",
 };
 
 export function saveResumeFormData(data: ResumeFormData) {
@@ -158,4 +160,42 @@ export function estimatePageFit(resume: any): { usagePercent: number; isFull: bo
     usagePercent: Math.round(usagePercent),
     isFull: usagePercent > 85, // Gate suggestions when >85% full
   };
+}
+
+/**
+ * Bold word state: Map of word ID (section_entryIndex_bulletIndex_wordIndex) to boolean
+ */
+export type BoldWordsState = Record<string, boolean>;
+
+export function saveBoldWords(boldState: BoldWordsState) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(KEYS.boldWords, JSON.stringify(boldState));
+}
+
+export function loadBoldWords(): BoldWordsState {
+  if (typeof window === "undefined") return {};
+  const raw = localStorage.getItem(KEYS.boldWords);
+  if (!raw) return {};
+
+  try {
+    return JSON.parse(raw) as BoldWordsState;
+  } catch {
+    return {};
+  }
+}
+
+export function clearBoldWords() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(KEYS.boldWords);
+}
+
+export function saveSelectedTemplate(templateId: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(KEYS.selectedTemplate, templateId);
+}
+
+export function loadSelectedTemplate(): string {
+  if (typeof window === "undefined") return "classic";
+  const raw = localStorage.getItem(KEYS.selectedTemplate);
+  return raw || "classic";
 }
