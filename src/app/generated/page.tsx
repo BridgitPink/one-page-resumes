@@ -12,6 +12,16 @@ function getBulletText(bullet: any): string {
   return "";
 }
 
+function SectionTitle({ title }: { title: string }) {
+  return (
+    <div className="border-b border-neutral-400 pb-1">
+      <h2 className="text-[12px] font-bold uppercase tracking-[0.16em] text-neutral-900">
+        {title}
+      </h2>
+    </div>
+  );
+}
+
 function getExperience(resume: any) {
   if (Array.isArray(resume?.experience)) return resume.experience;
   if (Array.isArray(resume?.experiences)) return resume.experiences;
@@ -84,6 +94,26 @@ export default function GeneratedPage() {
 
   const experience = getExperience(resume);
   const skills = getSkills(resume);
+  const basics = resume?.basics ?? {};
+  const target = resume?.target ?? {};
+  const projects = Array.isArray(resume?.projects) ? resume.projects : [];
+  const extras = Array.isArray(resume?.extras) ? resume.extras : [];
+
+  const contactItems = [
+    basics.email,
+    basics.phone,
+    basics.location,
+    basics.linkedin,
+    basics.github,
+  ].filter(Boolean);
+
+  const educationLeft = [basics.school, basics.degree].filter(Boolean).join(" | ");
+  const educationRight = [
+    basics.graduationDate,
+    basics.gpa ? `GPA: ${basics.gpa}` : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
 
   if (loading) {
     return <div className="mx-auto max-w-5xl px-6 py-10">Loading resume...</div>;
@@ -104,133 +134,134 @@ export default function GeneratedPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl px-6 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-semibold text-slate-900">Generated Resume</h1>
-          <p className="mt-2 text-slate-600">
-            Review your resume first. Keep this page focused and clean.
-          </p>
-        </div>
+    <main className="min-h-screen bg-white">
+      <div className="mx-auto flex justify-center px-4 py-8">
+        <article className="w-full max-w-[850px] bg-white text-black">
+          {/* Top navigation bar */}
+          <div className="mb-6 flex justify-between items-center border-b border-slate-200 pb-4">
+            <h1 className="text-2xl font-semibold text-slate-900">Generated Resume</h1>
+            <button
+              onClick={() => router.push("/analyze")}
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              Continue
+            </button>
+          </div>
 
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <span className="font-semibold">Tip:</span> Review bullet wording, remove anything
-          inaccurate, and then continue to analysis.
-        </div>
+          {/* Resume content */}
+          <div className="px-10 py-8">
+            {/* Header */}
+            <header className="border-b border-black pb-4 text-center">
+              <h1 className="text-[30px] font-bold uppercase tracking-[0.08em]">
+                {basics.fullName || "Your Name"}
+              </h1>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-          <header className="border-b border-slate-200 pb-6">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900">
-              {resume?.basics?.fullName || "Your Name"}
-            </h2>
-            <div className="mt-2 text-sm text-slate-600">
-              {resume?.basics?.email || ""}
-              {resume?.basics?.phone ? ` • ${resume.basics.phone}` : ""}
-              {resume?.basics?.location ? ` • ${resume.basics.location}` : ""}
-              {resume?.basics?.linkedin ? ` • ${resume.basics.linkedin}` : ""}
-              {resume?.basics?.github ? ` • ${resume.basics.github}` : ""}
-            </div>
-          </header>
-
-          {shouldShowSummary(resume) && (
-            <section className="mt-6">
-              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Summary
-              </h3>
-              <p className="text-sm leading-6 text-slate-800">{resume.summary}</p>
-            </section>
-          )}
-
-          {(resume?.basics?.school ||
-            resume?.basics?.degree ||
-            resume?.basics?.graduationDate ||
-            resume?.basics?.gpa) && (
-            <section className="mt-8">
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Education
-              </h3>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-semibold text-slate-900">{resume?.basics?.school}</p>
-                  <p className="text-sm text-slate-700">
-                    {resume?.basics?.degree || ""}
-                    {resume?.basics?.gpa
-                      ? `${resume?.basics?.degree ? " • " : ""}GPA: ${resume.basics.gpa}`
-                      : ""}
-                  </p>
-                </div>
-                <p className="text-sm text-slate-500">
-                  {resume?.basics?.graduationDate || ""}
+              {target.role ? (
+                <p className="mt-2 text-[13px] font-medium uppercase tracking-[0.12em] text-neutral-700">
+                  {target.role}
                 </p>
-              </div>
-            </section>
-          )}
+              ) : null}
 
-          {Array.isArray(experience) && experience.length > 0 && (
-            <section className="mt-8">
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Experience
-              </h3>
-              <div className="space-y-8">
-                {experience.map((exp: any, index: number) => (
-                  <div key={index}>
-                    <p className="font-semibold text-slate-900">{exp?.role}</p>
-                    <p className="text-sm text-slate-700">{exp?.organization}</p>
-                    <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-800">
-                      {(exp?.bullets ?? []).map((bullet: any, i: number) => {
-                        const text = getBulletText(bullet);
-                        if (!text) return null;
-                        return <li key={i}>{text}</li>;
-                      })}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+              {contactItems.length > 0 ? (
+                <p className="mt-3 text-[12px] leading-5 text-neutral-800">
+                  {contactItems.join(" | ")}
+                </p>
+              ) : null}
+            </header>
 
-          {Array.isArray(resume?.projects) && resume.projects.length > 0 && (
-            <section className="mt-8">
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Projects
-              </h3>
-              <div className="space-y-8">
-                {resume.projects.map((project: any, index: number) => (
-                  <div key={index}>
-                    <p className="font-semibold text-slate-900">{project?.name}</p>
-                    <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-800">
-                      {(project?.bullets ?? []).map((bullet: any, i: number) => {
-                        const text = getBulletText(bullet);
-                        if (!text) return null;
-                        return <li key={i}>{text}</li>;
-                      })}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+            {/* Summary */}
+            {shouldShowSummary(resume) && (
+              <section className="mt-5">
+                <SectionTitle title="Summary" />
+                <p className="mt-2 text-[13px] leading-6">{resume.summary}</p>
+              </section>
+            )}
 
-          {skills.length > 0 && (
-            <section className="mt-8">
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Skills
-              </h3>
-              <p className="text-sm leading-6 text-slate-800">
-                {skills.join(" • ")}
-              </p>
-            </section>
-          )}
-        </section>
+            {/* Skills */}
+            {skills.length > 0 && (
+              <section className="mt-5">
+                <SectionTitle title="Skills" />
+                <p className="mt-2 text-[13px] leading-6">
+                  {skills.join(" • ")}
+                </p>
+              </section>
+            )}
 
-        <div className="mt-8 flex justify-end">
-          <button
-            onClick={() => router.push("/analyze")}
-            className="rounded-lg bg-slate-900 px-6 py-3 text-sm font-medium text-white hover:bg-slate-800"
-          >
-            Continue to Analysis
-          </button>
-        </div>
+            {/* Experience */}
+            {experience.length > 0 && (
+              <section className="mt-5">
+                <SectionTitle title="Experience" />
+                <div className="mt-3 space-y-5">
+                  {experience.map((item: any, index: number) => (
+                    <div key={`${item.role}-${item.organization}-${index}`}>
+                      <h3 className="text-[14px] font-bold">{item.role}</h3>
+                      <p className="text-[13px] italic text-neutral-800">
+                        {item.organization}
+                      </p>
+
+                      {item.bullets?.length ? (
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] leading-6">
+                          {item.bullets.map((bullet: any, bulletIndex: number) => {
+                            const text = getBulletText(bullet);
+                            if (!text) return null;
+                            return <li key={bulletIndex}>{text}</li>;
+                          })}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Projects */}
+            {projects.length > 0 && (
+              <section className="mt-5">
+                <SectionTitle title="Projects" />
+                <div className="mt-3 space-y-5">
+                  {projects.map((project: any, index: number) => (
+                    <div key={`${project.name}-${index}`}>
+                      <h3 className="text-[14px] font-bold">{project.name}</h3>
+
+                      {project.bullets?.length ? (
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] leading-6">
+                          {project.bullets.map((bullet: any, bulletIndex: number) => {
+                            const text = getBulletText(bullet);
+                            if (!text) return null;
+                            return <li key={bulletIndex}>{text}</li>;
+                          })}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Education */}
+            {(educationLeft || educationRight) ? (
+              <section className="mt-5">
+                <SectionTitle title="Education" />
+                <div className="mt-3 flex items-start justify-between gap-4 text-[13px] leading-6">
+                  <div className="font-medium">{educationLeft}</div>
+                  <div className="text-right text-neutral-800">{educationRight}</div>
+                </div>
+              </section>
+            ) : null}
+
+            {/* Additional/Extras */}
+            {extras.length > 0 ? (
+              <section className="mt-5">
+                <SectionTitle title="Additional" />
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] leading-6">
+                  {extras.map((item: string, index: number) => (
+                    <li key={`${item}-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+          </div>
+        </article>
       </div>
     </main>
   );
