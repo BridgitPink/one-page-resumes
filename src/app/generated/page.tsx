@@ -4,6 +4,40 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadGeneratedResume } from "@/lib/resume/storage";
 
+function getBulletText(bullet: any): string {
+  if (typeof bullet === "string") return bullet;
+  if (bullet && typeof bullet === "object") {
+    return bullet.polished || bullet.expanded || bullet.originalInput || "";
+  }
+  return "";
+}
+
+function getExperience(resume: any) {
+  if (Array.isArray(resume?.experience)) return resume.experience;
+  if (Array.isArray(resume?.experiences)) return resume.experiences;
+  return [];
+}
+
+function getSkills(resume: any): string[] {
+  const skills = resume?.skills;
+
+  if (Array.isArray(skills)) return skills.filter(Boolean);
+
+  if (skills && typeof skills === "object") {
+    return [
+      ...(Array.isArray(skills.languages) ? skills.languages : []),
+      ...(Array.isArray(skills.frameworks) ? skills.frameworks : []),
+      ...(Array.isArray(skills.tools) ? skills.tools : []),
+      ...(Array.isArray(skills.databases) ? skills.databases : []),
+      ...(Array.isArray(skills.cloud) ? skills.cloud : []),
+      ...(Array.isArray(skills.concepts) ? skills.concepts : []),
+      ...(Array.isArray(skills.additional) ? skills.additional : []),
+    ].filter(Boolean);
+  }
+
+  return [];
+}
+
 export default function GeneratedPage() {
   const router = useRouter();
   const [resume, setResume] = useState<any>(null);
@@ -11,9 +45,18 @@ export default function GeneratedPage() {
 
   useEffect(() => {
     const stored = loadGeneratedResume();
-    setResume(stored);
+
+    if (stored?.generated) {
+      setResume(stored.generated);
+    } else {
+      setResume(stored);
+    }
+
     setLoading(false);
   }, []);
+
+  const experience = getExperience(resume);
+  const skills = getSkills(resume);
 
   if (loading) {
     return <div className="mx-auto max-w-5xl px-6 py-10">Loading resume...</div>;
@@ -96,20 +139,22 @@ export default function GeneratedPage() {
             </section>
           )}
 
-          {Array.isArray(resume?.experiences) && resume.experiences.length > 0 && (
+          {Array.isArray(experience) && experience.length > 0 && (
             <section className="mt-8">
               <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
                 Experience
               </h3>
               <div className="space-y-8">
-                {resume.experiences.map((exp: any, index: number) => (
+                {experience.map((exp: any, index: number) => (
                   <div key={index}>
                     <p className="font-semibold text-slate-900">{exp?.role}</p>
                     <p className="text-sm text-slate-700">{exp?.organization}</p>
                     <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-800">
-                      {(exp?.bullets ?? []).map((bullet: string, i: number) => (
-                        <li key={i}>{bullet}</li>
-                      ))}
+                      {(exp?.bullets ?? []).map((bullet: any, i: number) => {
+                        const text = getBulletText(bullet);
+                        if (!text) return null;
+                        return <li key={i}>{text}</li>;
+                      })}
                     </ul>
                   </div>
                 ))}
@@ -127,9 +172,11 @@ export default function GeneratedPage() {
                   <div key={index}>
                     <p className="font-semibold text-slate-900">{project?.name}</p>
                     <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-800">
-                      {(project?.bullets ?? []).map((bullet: string, i: number) => (
-                        <li key={i}>{bullet}</li>
-                      ))}
+                      {(project?.bullets ?? []).map((bullet: any, i: number) => {
+                        const text = getBulletText(bullet);
+                        if (!text) return null;
+                        return <li key={i}>{text}</li>;
+                      })}
                     </ul>
                   </div>
                 ))}
@@ -137,13 +184,13 @@ export default function GeneratedPage() {
             </section>
           )}
 
-          {Array.isArray(resume?.skills) && resume.skills.length > 0 && (
+          {skills.length > 0 && (
             <section className="mt-8">
               <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
                 Skills
               </h3>
               <p className="text-sm leading-6 text-slate-800">
-                {resume.skills.join(" • ")}
+                {skills.join(" • ")}
               </p>
             </section>
           )}
