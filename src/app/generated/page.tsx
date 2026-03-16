@@ -120,6 +120,7 @@ interface BulletListItemProps {
   isSuggestion?: boolean;
   onAcceptSuggestion?: () => void;
   onDismissSuggestion?: () => void;
+  shouldAutoEdit?: boolean;
 }
 
 function BulletListItem({
@@ -131,8 +132,9 @@ function BulletListItem({
   isSuggestion = false,
   onAcceptSuggestion,
   onDismissSuggestion,
+  shouldAutoEdit = false,
 }: BulletListItemProps) {
-  const [isEditingBullet, setIsEditingBullet] = useState(false);
+  const [isEditingBullet, setIsEditingBullet] = useState(shouldAutoEdit);
   const inputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -281,16 +283,30 @@ export default function GeneratedPage() {
     [key: string]: boolean;
   }>({});
   const [newSkillInput, setNewSkillInput] = useState("");
+  const [autoEditBullet, setAutoEditBullet] = useState<{
+    type: "experience" | "project";
+    entryIndex: number;
+    bulletIndex: number;
+  } | null>(null);
 
   useEffect(() => {
     const stored = loadGeneratedResume<any>();
+    let resume = null;
 
     if (stored?.generated) {
-      setResume(stored.generated);
+      resume = stored.generated;
     } else {
-      setResume(stored);
+      resume = stored;
     }
 
+    // Normalize experience key: ensure "experience" (singular) not "experiences" (plural)
+    // This prevents key mismatch errors in handlers that always write to "experience"
+    if (resume && Array.isArray(resume.experiences) && !Array.isArray(resume.experience)) {
+      resume.experience = resume.experiences;
+      delete resume.experiences;
+    }
+
+    setResume(resume);
     setLoading(false);
   }, []);
 
@@ -396,6 +412,7 @@ export default function GeneratedPage() {
                 targetRole: resume?.target.role || "",
                 jobDescription: resume?.target.jobDescription || "",
                 skills: resume?.skills || [],
+                currentBulletText: userText,
               }
             : {
                 type: "project" as const,
@@ -406,6 +423,7 @@ export default function GeneratedPage() {
                 targetRole: resume?.target.role || "",
                 jobDescription: resume?.target.jobDescription || "",
                 skills: resume?.skills || [],
+                currentBulletText: userText,
               };
 
         const response = await fetch("/api/suggest-bullet", {
@@ -446,14 +464,35 @@ export default function GeneratedPage() {
       if (!suggestion || !resume) return;
 
       const updatedResume = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
+      
+      // Ensure bullet has at least one text field populated
+      const bulletText = suggestion.polished || suggestion.expanded || suggestion.originalInput || "";
+      
+      // Create a properly structured bullet from the suggestion
+      const bulletToAdd = {
+        polished: suggestion.polished || bulletText,
+        expanded: suggestion.expanded || bulletText,
+        originalInput: suggestion.originalInput || bulletText,
+        impactTags: suggestion.impactTags || [],
+        matchedKeywords: suggestion.matchedKeywords || [],
+      };
 
-      if (type === "experience" && updatedResume.experience && updatedResume.experience[index]) {
-        updatedResume.experience[index].bullets.push(suggestion);
+      if (type === "experience") {
+        // Initialize experience array if it doesn't exist
+        if (!updatedResume.experience) {
+          updatedResume.experience = [];
+        }
+        if (updatedResume.experience[index]) {
+          updatedResume.experience[index].bullets.push(bulletToAdd);
+        }
       } else if (type === "project" && updatedResume.projects && updatedResume.projects[index]) {
-        updatedResume.projects[index].bullets.push(suggestion);
+        updatedResume.projects[index].bullets.push(bulletToAdd);
       }
 
+      // Update resume first to persist the new bullet
       updateResume(updatedResume);
+      
+      // Then clear the suggestion from temporary state
       setSuggestions((prev) => {
         const next = { ...prev };
         delete next[sectionKey];
@@ -539,11 +578,17 @@ export default function GeneratedPage() {
 
       const updatedResume = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
 
-      if (type === "experience" && updatedResume.experience?.[entryIndex]) {
-        updatedResume.experience[entryIndex].bullets[bulletIndex] = {
-          ...updatedResume.experience[entryIndex].bullets[bulletIndex],
-          polished: newText,
-        };
+      if (type === "experience") {
+        // Initialize experience array if it doesn't exist
+        if (!updatedResume.experience) {
+          updatedResume.experience = [];
+        }
+        if (updatedResume.experience?.[entryIndex]) {
+          updatedResume.experience[entryIndex].bullets[bulletIndex] = {
+            ...updatedResume.experience[entryIndex].bullets[bulletIndex],
+            polished: newText,
+          };
+        }
       } else if (type === "project" && updatedResume.projects?.[entryIndex]) {
         updatedResume.projects[entryIndex].bullets[bulletIndex] = {
           ...updatedResume.projects[entryIndex].bullets[bulletIndex],
@@ -562,8 +607,14 @@ export default function GeneratedPage() {
 
       const updatedResume = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
 
-      if (type === "experience" && updatedResume.experience?.[entryIndex]) {
-        updatedResume.experience[entryIndex].bullets.splice(bulletIndex, 1);
+      if (type === "experience") {
+        // Initialize experience array if it doesn't exist
+        if (!updatedResume.experience) {
+          updatedResume.experience = [];
+        }
+        if (updatedResume.experience?.[entryIndex]) {
+          updatedResume.experience[entryIndex].bullets.splice(bulletIndex, 1);
+        }
       } else if (type === "project" && updatedResume.projects?.[entryIndex]) {
         updatedResume.projects[entryIndex].bullets.splice(bulletIndex, 1);
       }
@@ -578,15 +629,23 @@ export default function GeneratedPage() {
       if (!resume) return;
 
       const updatedResume = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
+      let bulletIndex = -1;
 
-      if (type === "experience" && updatedResume.experience?.[index]) {
-        updatedResume.experience[index].bullets.push({
-          polished: "",
-          expanded: "",
-          originalInput: "",
-          impactTags: [],
-          matchedKeywords: [],
-        });
+      if (type === "experience") {
+        // Initialize experience array if it doesn't exist
+        if (!updatedResume.experience) {
+          updatedResume.experience = [];
+        }
+        if (updatedResume.experience[index]) {
+          updatedResume.experience[index].bullets.push({
+            polished: "",
+            expanded: "",
+            originalInput: "",
+            impactTags: [],
+            matchedKeywords: [],
+          });
+          bulletIndex = updatedResume.experience[index].bullets.length - 1;
+        }
       } else if (type === "project" && updatedResume.projects?.[index]) {
         updatedResume.projects[index].bullets.push({
           polished: "",
@@ -595,9 +654,17 @@ export default function GeneratedPage() {
           impactTags: [],
           matchedKeywords: [],
         });
+        bulletIndex = updatedResume.projects[index].bullets.length - 1;
       }
 
+      // Update resume state and localStorage first
       updateResume(updatedResume);
+      
+      // Then mark the newly added bullet for auto-editing
+      // React batches these updates together in the event handler
+      if (bulletIndex !== -1) {
+        setAutoEditBullet({ type, entryIndex: index, bulletIndex });
+      }
     },
     [resume, updateResume]
   );
@@ -858,8 +925,10 @@ export default function GeneratedPage() {
                         value={item.role || ""}
                         onChange={(value) => {
                           const updated = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
-                          updated.experience[expIndex].role = value;
-                          updateResume(updated);
+                          if (updated.experience?.[expIndex]) {
+                            updated.experience[expIndex].role = value;
+                            updateResume(updated);
+                          }
                         }}
                         className="text-black text-[14px] font-bold"
                         placeholder="Job title"
@@ -868,8 +937,10 @@ export default function GeneratedPage() {
                         value={item.organization || ""}
                         onChange={(value) => {
                           const updated = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
-                          updated.experience[expIndex].organization = value;
-                          updateResume(updated);
+                          if (updated.experience?.[expIndex]) {
+                            updated.experience[expIndex].organization = value;
+                            updateResume(updated);
+                          }
                         }}
                         className="text-black text-[13px] italic text-neutral-800"
                         placeholder="Company name"
@@ -879,16 +950,22 @@ export default function GeneratedPage() {
                         <ul className="mt-2 list-none space-y-1 pl-0 text-[13px] leading-6">
                           {item.bullets.map((bullet: any, bulletIndex: number) => {
                             const regenKey = `regen-experience-${expIndex}-${bulletIndex}`;
-                            const regenSuggestion = suggestions[regenKey];
                             const bulletKey = `experience-${expIndex}-bullet-${bulletIndex}-regen`;
+                            const shouldAutoEdit = 
+                              autoEditBullet?.type === "experience" &&
+                              autoEditBullet?.entryIndex === expIndex &&
+                              autoEditBullet?.bulletIndex === bulletIndex;
 
                             return (
                               <div key={`exp-${expIndex}-bullet-${bulletIndex}`}>
                                 <BulletListItem
                                   bullet={bullet}
-                                  onEdit={(newText) =>
-                                    updateBullet("experience", expIndex, bulletIndex, newText)
-                                  }
+                                  shouldAutoEdit={shouldAutoEdit}
+                                  onEdit={(newText) => {
+                                    updateBullet("experience", expIndex, bulletIndex, newText);
+                                    // Clear autoEditBullet after saving
+                                    setAutoEditBullet(null);
+                                  }}
                                   onDelete={() =>
                                     deleteBullet("experience", expIndex, bulletIndex)
                                   }
@@ -906,16 +983,18 @@ export default function GeneratedPage() {
                             );
                           })}
                           {suggestion && (
-                            <BulletListItem
-                              bullet={suggestion}
-                              isSuggestion
-                              onAcceptSuggestion={() =>
-                                acceptSuggestion(sectionKey, "experience", expIndex)
-                              }
-                              onDismissSuggestion={() => dismissSuggestion(sectionKey)}
-                              onEdit={() => {}}
-                              onDelete={() => {}}
-                            />
+                            <div key={`suggestion-${sectionKey}`}>
+                              <BulletListItem
+                                bullet={suggestion}
+                                isSuggestion
+                                onAcceptSuggestion={() =>
+                                  acceptSuggestion(sectionKey, "experience", expIndex)
+                                }
+                                onDismissSuggestion={() => dismissSuggestion(sectionKey)}
+                                onEdit={() => {}}
+                                onDelete={() => {}}
+                              />
+                            </div>
                           )}
                         </ul>
                       ) : null}
@@ -963,8 +1042,10 @@ export default function GeneratedPage() {
                         value={project.name || ""}
                         onChange={(value) => {
                           const updated = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
-                          updated.projects[projIndex].name = value;
-                          updateResume(updated);
+                          if (updated.projects?.[projIndex]) {
+                            updated.projects[projIndex].name = value;
+                            updateResume(updated);
+                          }
                         }}
                         className="text-black text-[14px] font-bold"
                         placeholder="Project name"
@@ -974,16 +1055,22 @@ export default function GeneratedPage() {
                         <ul className="mt-2 list-none space-y-1 pl-0 text-[13px] leading-6">
                           {project.bullets.map((bullet: any, bulletIndex: number) => {
                             const regenKey = `regen-project-${projIndex}-${bulletIndex}`;
-                            const regenSuggestion = suggestions[regenKey];
                             const bulletKey = `project-${projIndex}-bullet-${bulletIndex}-regen`;
+                            const shouldAutoEdit = 
+                              autoEditBullet?.type === "project" &&
+                              autoEditBullet?.entryIndex === projIndex &&
+                              autoEditBullet?.bulletIndex === bulletIndex;
 
                             return (
                               <div key={`proj-${projIndex}-bullet-${bulletIndex}`}>
                                 <BulletListItem
                                   bullet={bullet}
-                                  onEdit={(newText) =>
-                                    updateBullet("project", projIndex, bulletIndex, newText)
-                                  }
+                                  shouldAutoEdit={shouldAutoEdit}
+                                  onEdit={(newText) => {
+                                    updateBullet("project", projIndex, bulletIndex, newText);
+                                    // Clear autoEditBullet after saving
+                                    setAutoEditBullet(null);
+                                  }}
                                   onDelete={() =>
                                     deleteBullet("project", projIndex, bulletIndex)
                                   }
@@ -1001,18 +1088,20 @@ export default function GeneratedPage() {
                             );
                           })}
                           {suggestion && (
-                            <BulletListItem
-                              bullet={suggestion}
-                              isSuggestion
-                              onAcceptSuggestion={() =>
-                                acceptSuggestion(sectionKey, "project", projIndex)
-                              }
-                              onDismissSuggestion={() =>
-                                dismissSuggestion(sectionKey)
-                              }
-                              onEdit={() => {}}
-                              onDelete={() => {}}
-                            />
+                            <div key={`suggestion-${sectionKey}`}>
+                              <BulletListItem
+                                bullet={suggestion}
+                                isSuggestion
+                                onAcceptSuggestion={() =>
+                                  acceptSuggestion(sectionKey, "project", projIndex)
+                                }
+                                onDismissSuggestion={() =>
+                                  dismissSuggestion(sectionKey)
+                                }
+                                onEdit={() => {}}
+                                onDelete={() => {}}
+                              />
+                            </div>
                           )}
                         </ul>
                       ) : null}

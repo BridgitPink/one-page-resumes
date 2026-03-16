@@ -57,6 +57,7 @@ interface SuggestBulletRequest {
   targetRole: string;
   jobDescription?: string;
   skills?: string[];
+  currentBulletText?: string;
 }
 
 export async function POST(req: Request) {
@@ -127,12 +128,12 @@ Target role: ${body.targetRole}
 ${body.jobDescription ? `Job description keywords: ${body.jobDescription}` : ""}
 ${body.skills && body.skills.length > 0 ? `Available skills/technologies: ${body.skills.join(", ")}` : ""}
 
-Existing bullets for this ${body.type}:
-${existingBulletTexts || "(None yet—this is the first bullet)"}
+${body.currentBulletText ? `Current bullet to improve:\n"${body.currentBulletText}"\n\nPlease rewrite and improve this bullet following STAR methodology, making it more impactful while preserving the core accomplishment. Consider adding quantifiable results or broader scope if possible.` : `No current bullet—generate a new one.`}
 
-Generate ONE powerful, impactful resume bullet following STAR methodology. The bullet should NOT duplicate existing bullets—instead, highlight a different strength, outcome, or responsibility from this ${body.type}.
+Existing ${body.type} bullets:
+${existingBulletTexts || "(None yet)"}
 
-The bullet must be optimized for the target role and include quantifiable results or scope when possible. Return valid JSON matching the schema with polished, expanded, impactTags, and matchedKeywords fields.
+Generate ONE powerful, impactful resume bullet following STAR methodology. ${body.currentBulletText ? "The rewritten bullet should improve upon the current one by being more impactful and recruiter-friendly." : "The bullet should NOT duplicate existing bullets—instead, highlight a different strength, outcome, or responsibility from this " + body.type + "."} Return valid JSON matching the schema with polished, expanded, impactTags, and matchedKeywords fields.
 `;
 
     const response = await client.responses.create({
