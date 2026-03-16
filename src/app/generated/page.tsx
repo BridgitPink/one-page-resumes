@@ -19,12 +19,21 @@ import type { GeneratedResume, ResumeBullet } from "@/types/resume";
 
 
 
-function SectionTitle({ title }: { title: string }) {
+function SectionTitle({ title, onDelete }: { title: string; onDelete?: () => void }) {
   return (
-    <div className="border-b border-neutral-400 pb-1">
+    <div className="flex items-center justify-between border-b border-neutral-400 pb-1">
       <h2 className="text-[12px] font-bold uppercase tracking-[0.16em] text-neutral-900">
         {title}
       </h2>
+      {onDelete && (
+        <button
+          onClick={onDelete}
+          className="text-[11px] px-2 py-1 rounded text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+          title={`Delete ${title} section`}
+        >
+          Delete
+        </button>
+      )}
     </div>
   );
 }
@@ -185,10 +194,16 @@ function BulletListItem({
     <li
       className={`group relative flex gap-2 ${
         isSuggestion
-          ? "text-slate-500 opacity-75"
-          : "text-black"
-      } cursor-text transition-colors`}
-      onClick={!isEditingBullet ? () => setIsEditingBullet(true) : undefined}
+          ? "text-slate-500 opacity-75 cursor-pointer hover:opacity-95"
+          : "text-black cursor-text"
+      } transition-colors`}
+      onClick={!isEditingBullet ? () => {
+        if (isSuggestion) {
+          onAcceptSuggestion?.();
+        } else {
+          setIsEditingBullet(true);
+        }
+      } : undefined}
     >
       <span className="flex-shrink-0">•</span>
       <span className="flex-1 text-[13px] leading-6 whitespace-pre-wrap break-words">
@@ -212,7 +227,14 @@ function BulletListItem({
               className="p-1 text-slate-500 hover:text-emerald-400 disabled:opacity-50 transition-colors"
               title="Regenerate with AI"
             >
-              {isRegenerating ? "..." : "↻"}
+              {isRegenerating ? (
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" opacity="0.25" />
+                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              ) : (
+                "↻"
+              )}
             </button>
           )}
           <button
@@ -398,18 +420,24 @@ export default function GeneratedPage() {
         }
 
         const data = await response.json();
-        const sectionKey = `regen-${type}-${entryIndex}-${bulletIndex}`;
-        setSuggestions((prev) => ({
-          ...prev,
-          [sectionKey]: { ...data.bullet, originalInput: userText },
-        }));
+        // Auto-apply: directly update the bullet instead of storing as suggestion
+        const updatedResume = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
+        const newBullet = { ...data.bullet, originalInput: userText };
+
+        if (type === "experience" && updatedResume.experience?.[entryIndex]) {
+          updatedResume.experience[entryIndex].bullets[bulletIndex] = newBullet;
+        } else if (type === "project" && updatedResume.projects?.[entryIndex]) {
+          updatedResume.projects[entryIndex].bullets[bulletIndex] = newBullet;
+        }
+
+        updateResume(updatedResume);
       } catch (error) {
         console.error("Error regenerating bullet:", error);
       } finally {
         setRegeneratingBullets((prev) => ({ ...prev, [bulletKey]: false }));
       }
     },
-    [resume]
+    [resume, updateResume]
   );
 
   const acceptSuggestion = useCallback(
@@ -492,6 +520,13 @@ export default function GeneratedPage() {
     },
     [resume, updateResume]
   );
+
+  const deleteAllProjects = useCallback(() => {
+    if (!resume) return;
+    const updatedResume = JSON.parse(JSON.stringify(resume)) as GeneratedResume;
+    updatedResume.projects = [];
+    updateResume(updatedResume);
+  }, [resume, updateResume]);
 
   const updateBullet = useCallback(
     (
@@ -867,15 +902,6 @@ export default function GeneratedPage() {
                                   }}
                                   isRegenerating={regeneratingBullets[bulletKey] || false}
                                 />
-                                {regenSuggestion && (
-                                  <RegenerationSuggestionBox
-                                    suggestion={regenSuggestion}
-                                    onAccept={() =>
-                                      replaceBulletWithSuggestion(regenKey, "experience", expIndex, bulletIndex)
-                                    }
-                                    onDismiss={() => dismissSuggestion(regenKey)}
-                                  />
-                                )}
                               </div>
                             );
                           })}
@@ -925,7 +951,7 @@ export default function GeneratedPage() {
           {/* Projects */}
           {projects.length > 0 && (
             <section className="mt-5">
-              <SectionTitle title="Projects" />
+              <SectionTitle title="Projects" onDelete={deleteAllProjects} />
               <div className="mt-3 space-y-5">
                 {projects.map((project: any, projIndex: number) => {
                   const sectionKey = `proj-${projIndex}`;
@@ -971,15 +997,6 @@ export default function GeneratedPage() {
                                   }}
                                   isRegenerating={regeneratingBullets[bulletKey] || false}
                                 />
-                                {regenSuggestion && (
-                                  <RegenerationSuggestionBox
-                                    suggestion={regenSuggestion}
-                                    onAccept={() =>
-                                      replaceBulletWithSuggestion(regenKey, "project", projIndex, bulletIndex)
-                                    }
-                                    onDismiss={() => dismissSuggestion(regenKey)}
-                                  />
-                                )}
                               </div>
                             );
                           })}
